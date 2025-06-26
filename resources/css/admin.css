@@ -1,0 +1,2 @@
+@import "tailwindcss";     /* já inclui Preflight, base, components e utilities */
+@import "flowbite";

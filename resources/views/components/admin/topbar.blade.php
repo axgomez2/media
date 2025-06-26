@@ -45,10 +45,15 @@
                     <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 " role="menuitem">Earnings</a>
                   </li> --}}
                   <li>
+                    <a href="{{ route('admin.change-password') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">
+                      🔐 Alterar Senha
+                    </a>
+                  </li>
+                  <li>
                     <form method="POST" action="{{ route('logout') }}" class="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 ">
                         @csrf
                         <button type="submit" class="">
-                            
+
                             Sair
                         </button>
                     </form>
@@ -69,5 +74,5 @@
         </svg>
         <span>{{ auth()->user()->name }}</span>
     </div>
-    
+
 </div>

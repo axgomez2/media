@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\PosSalesController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\YouTubeController;
 use App\Http\Controllers\Admin\SettingsController;
+use Illuminate\Support\Facades\Hash;
 // Rota inicial acessível por todos
 Route::get('/', function () {
     return view('welcome');
@@ -25,7 +26,7 @@ Route::post('/youtube/search', [YouTubeController::class, 'search'])->name('yout
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // Dashboard administrativo
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
-    
+
     // Gerenciamento de Discos
 Route::prefix('discos')->group(function () {
     // Listagem e operações básicas
@@ -52,7 +53,7 @@ Route::prefix('discos')->group(function () {
     //faixas
     Route::get('/{id}/edit-tracks', [TrackController::class, 'editTracks'])->name('admin.vinyls.edit-tracks');
     Route::put('/{id}/update-tracks', [TrackController::class, 'updateTracks'])->name('admin.vinyls.update-tracks');
-    
+
 
 });
 
@@ -60,6 +61,26 @@ Route::prefix('discos')->group(function () {
 Route::match(['get', 'post'], '/youtube/search', [YouTubeController::class, 'search'])->name('admin.youtube.search')->withoutMiddleware(['admin']);
 
 Route::get('/settings', [SettingsController::class, 'index'])->name('admin.settings');
+
+// Alterar senha do usuário admin
+Route::get('/alterar-senha', function () {
+    return view('admin.change-password');
+})->name('admin.change-password');
+
+// Processar alteração de senha
+Route::put('/alterar-senha', function (Illuminate\Http\Request $request) {
+    $request->validate([
+        'current_password' => ['required', 'current_password'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    $user = auth()->user();
+    $user->update([
+        'password' => Hash::make($request->password)
+    ]);
+
+    return back()->with('success', 'Senha alterada com sucesso!');
+})->name('admin.update-password');
 
 // Gerenciamento de categorias de disco
 Route::prefix('categorias')->group(function () {
@@ -95,19 +116,19 @@ Route::prefix('cover-status')->group(function () {
 Route::prefix('relatorios')->group(function () {
     Route::get('/', [ReportsController::class, 'index'])->name('admin.reports.index');
     Route::get('/discos', [ReportsController::class, 'vinyl'])->name('admin.reports.vinyl');
-    
+
     // Relatórios de carrinhos
     Route::get('/carrinhos', [ReportsController::class, 'carts'])->name('admin.reports.carts');
     Route::get('/carrinhos/{vinylSecId}', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
-    
+
     // Relatórios de wishlist
     Route::get('/wishlist', [ReportsController::class, 'wishlists'])->name('admin.reports.wishlists');
     Route::get('/wishlist/{vinylMasterId}', [ReportsController::class, 'wishlistDetails'])->name('admin.reports.wishlist_details');
-    
+
     // Relatórios de wantlist
     Route::get('/wantlist', [ReportsController::class, 'wantlists'])->name('admin.reports.wantlists');
     Route::get('/wantlist/{vinylMasterId}', [ReportsController::class, 'wantlistDetails'])->name('admin.reports.wantlist_details');
-    
+
     // Relatórios de visualizações
     Route::get('/visualizacoes', [ReportsController::class, 'views'])->name('admin.reports.views');
     Route::get('/visualizacoes/{vinylMasterId}', [ReportsController::class, 'viewDetails'])->name('admin.reports.view_details');
@@ -127,7 +148,7 @@ Route::prefix('pdv')->group(function () {
     Route::post('/venda', [PosSalesController::class, 'store'])->name('admin.pos.store');
     Route::get('/venda/{posSale}', [PosSalesController::class, 'show'])->name('admin.pos.show');
     Route::get('/vendas', [PosSalesController::class, 'list'])->name('admin.pos.list');
-    
+
     // API para autocompletar
     Route::get('/buscar-usuarios', [PosSalesController::class, 'searchUsers'])->name('admin.pos.search-users');
     Route::get('/buscar-discos', [PosSalesController::class, 'searchVinyls'])->name('admin.pos.search-vinyls');
@@ -202,7 +223,7 @@ Route::prefix('api')->group(function () {
 //     // Identidade Visual (Logo e Favicon)
 //     Route::get('/branding', [DeveloperController::class, 'showBranding'])->name('admin.developer.branding');
 //     Route::post('/branding', [DeveloperController::class, 'updateBranding'])->name('admin.developer.branding.update');
-    
+
 //     // Informações da Loja
 //     Route::get('/store', [DeveloperController::class, 'showStoreInfo'])->name('admin.developer.store');
 //     Route::post('/store', [DeveloperController::class, 'updateStoreInfo'])->name('admin.developer.store.update');
@@ -212,8 +233,8 @@ Route::prefix('api')->group(function () {
 
 // Rotas acessíveis apenas para usuários autenticados (exceto clientes)
 Route::middleware(['auth'])->group(function () {
-  
-    
+
+
     // Configurações (apenas admin)
     Route::middleware('admin')->group(function () {
         Route::redirect('settings', 'settings/profile');

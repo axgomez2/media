@@ -16,16 +16,28 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\YouTubeController;
 use App\Http\Controllers\Admin\SettingsController;
 use Illuminate\Support\Facades\Hash;
+
+
+use App\Http\Controllers\Auth\LoginController;
+
 // Rota inicial acessível por todos
 Route::get('/', function () {
     return view('welcome');
 })->name('home');
+
+
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [LoginController::class, 'login']);
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::post('/youtube/search', [YouTubeController::class, 'search'])->name('youtube.search');
 // Rotas administrativas
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // Dashboard administrativo
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+    // User Creation
+    Route::post('/users', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store');
 
     // Gerenciamento de Discos
 Route::prefix('discos')->group(function () {
@@ -165,14 +177,14 @@ Route::prefix('fornecedores')->group(function () {
 });
 
 // Gerenciamento de Artistas
-Route::prefix('artists')->name('artists.')->group(function () {
-    Route::get('/', [ArtistsController::class, 'index'])->name('index');
-    Route::get('/create', [ArtistsController::class, 'create'])->name('create');
-    Route::post('/', [ArtistsController::class, 'store'])->name('store');
-    Route::get('/{artist}/edit', [ArtistsController::class, 'edit'])->name('edit');
-    Route::put('/{artist}', [ArtistsController::class, 'update'])->name('update');
-    Route::delete('/{artist}', [ArtistsController::class, 'destroy'])->name('destroy');
-});
+// Route::prefix('artists')->name('artists.')->group(function () {
+//     Route::get('/', [ArtistsController::class, 'index'])->name('index');
+//     Route::get('/create', [ArtistsController::class, 'create'])->name('create');
+//     Route::post('/', [ArtistsController::class, 'store'])->name('store');
+//     Route::get('/{artist}/edit', [ArtistsController::class, 'edit'])->name('edit');
+//     Route::put('/{artist}', [ArtistsController::class, 'update'])->name('update');
+//     Route::delete('/{artist}', [ArtistsController::class, 'destroy'])->name('destroy');
+// });
 
 // Rotas para gerenciar pedidos
 Route::prefix('orders')->name('admin.orders.')->group(function () {
@@ -232,21 +244,7 @@ Route::prefix('api')->group(function () {
 });
 
 // Rotas acessíveis apenas para usuários autenticados (exceto clientes)
-Route::middleware(['auth'])->group(function () {
-
-
-    // Configurações (apenas admin)
-    Route::middleware('admin')->group(function () {
-        Route::redirect('settings', 'settings/profile');
-        Volt::route('settings/profile', 'settings.profile')->name('settings.profile');
-        Volt::route('settings/password', 'settings.password')->name('settings.password');
-        Volt::route('settings/appearance', 'settings.appearance')->name('settings.appearance');
-    });
-});
-
-require __DIR__.'/auth.php';
-
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->group(function () {
     // Rotas para Tracks
     Route::prefix('tracks')->name('tracks.')->group(function () {
         Route::delete('/{track}', [TrackController::class, 'destroy'])->name('destroy');

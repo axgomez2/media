@@ -12,7 +12,7 @@ class ImageService
 {
     /**
      * Diretórios para cada tipo de imagem
-     * 
+     *
      * @var string
      */
     private const VINYL_COVER_DIRECTORY = 'vinyl_covers';
@@ -32,7 +32,7 @@ class ImageService
     {
         try {
             $imageName = $this->generateImageName($id, $image->getClientOriginalExtension());
-            Storage::disk('public')->put($imageName, file_get_contents($image));
+            Storage::disk('media')->put($imageName, file_get_contents($image));
 
             // Remover imagem antiga se existir
             if ($oldImagePath) {
@@ -61,7 +61,7 @@ class ImageService
     {
         try {
             $imageName = $this->generateImageName($id, $extension, $type);
-            Storage::disk('public')->put($imageName, $imageContents);
+            Storage::disk('media')->put($imageName, $imageContents);
 
             // Remover imagem antiga se existir
             if ($oldImagePath) {
@@ -84,8 +84,8 @@ class ImageService
     public function deleteImage(string $imagePath): bool
     {
         try {
-            if (Storage::disk('public')->exists($imagePath)) {
-                return Storage::disk('public')->delete($imagePath);
+            if (Storage::disk('media')->exists($imagePath)) {
+                return Storage::disk('media')->delete($imagePath);
             }
             return false;
         } catch (\Exception $e) {
@@ -109,16 +109,16 @@ class ImageService
             'artist' => self::ARTIST_COVER_DIRECTORY,
             default => self::VINYL_COVER_DIRECTORY
         };
-        
+
         // Verificar se o diretório existe, senão criar
-        $fullPath = 'public/' . $directory;
+        $fullPath = 'media/' . $directory;
         if (!Storage::exists($fullPath)) {
             Storage::makeDirectory($fullPath);
         }
-        
+
         return $directory . '/' . $id . '_' . Str::random(10) . '.' . $extension;
     }
-    
+
     /**
      * Baixa uma imagem da API do Discogs e salva no storage
      *
@@ -134,19 +134,19 @@ class ImageService
             if (empty($imageUrl)) {
                 return null;
             }
-            
+
             // Fazer o download da imagem usando Http Facade
             $response = Http::timeout(10)->get($imageUrl);
-            
+
             // Verificar se a solicitação foi bem-sucedida
             if (!$response->successful()) {
                 Log::error('Erro ao baixar imagem do Discogs: ' . $response->status());
                 return null;
             }
-            
+
             // Extrair conteúdo da imagem
             $imageContents = $response->body();
-            
+
             // Extrair extensão da URL ou usar jpg como fallback
             $extension = 'jpg';
             $urlParts = parse_url($imageUrl);
@@ -156,7 +156,7 @@ class ImageService
                     $extension = strtolower($pathInfo['extension']);
                 }
             }
-            
+
             // Salvar imagem e retornar o caminho
             return $this->saveImageFromContents($imageContents, $discogsId, $extension, $oldImagePath);
         } catch (\Exception $e) {

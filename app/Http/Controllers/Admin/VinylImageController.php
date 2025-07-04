@@ -63,7 +63,7 @@ class VinylImageController extends Controller
                     $path = 'vinyl_images/' . $filename;
 
                     // Salvar a imagem
-                    $savedImage = Storage::disk('public')->put($path, $img->toJpeg(80));
+                    $savedImage = Storage::disk('media')->put($path, $img->toJpeg(80));
 
                     if (!$savedImage) {
                         throw new \Exception('Falha ao salvar a imagem: ' . $filename);
@@ -72,7 +72,7 @@ class VinylImageController extends Controller
                     $media = new Media([
                         'file_path' => $path,
                         'file_name' => $filename,
-                        'file_size' => Storage::disk('public')->size($path),
+                        'file_size' => Storage::disk('media')->size($path),
                         'file_type' => 'image/jpeg',
                     ]);
                     $vinylMaster->media()->save($media);
@@ -96,8 +96,8 @@ class VinylImageController extends Controller
     // Verifica se o media pertence ao VinylMaster
     if ($media->mediable_id == $id && $media->mediable_type == VinylMaster::class) {
         // Se o arquivo existir, tenta deletá-lo
-        if (Storage::disk('public')->exists($media->file_path)) {
-            Storage::disk('public')->delete($media->file_path);
+        if (Storage::disk('media')->exists($media->file_path)) {
+            Storage::disk('media')->delete($media->file_path);
         } else {
             Log::warning("Arquivo não encontrado: " . $media->file_path);
         }

@@ -14,23 +14,23 @@ use Intervention\Image\Drivers\Gd\Driver;
 
 class VinylController extends Controller
 {
-   
-    
+
+
     /**
      * @var VinylService
      */
     protected $vinylService;
-    
+
     /**
      * @var DiscogsService
      */
     protected $discogsService;
-    
+
     /**
      * @var ImageService
      */
     protected $imageService;
-    
+
     /**
      * @param VinylService $vinylService
      * @param DiscogsService $discogsService
@@ -114,7 +114,7 @@ class VinylController extends Controller
             // Verificar se a solicitação é AJAX ou submissão de formulário
             $isAjax = $request->ajax() || $request->wantsJson();
             $releaseId = (string) $request->input('release_id');
-            
+
             // Verificar se temos um ID válido
             if (empty($releaseId)) {
                 if ($isAjax) {
@@ -122,7 +122,7 @@ class VinylController extends Controller
                 }
                 return redirect()->back()->with('error', 'ID do lançamento não fornecido.');
             }
-            
+
             // Obter dados do Discogs
             $releaseData = $this->discogsService->getRelease($releaseId);
 
@@ -145,15 +145,15 @@ class VinylController extends Controller
                 }
                 return redirect()->back()->with('warning', 'Este disco já está cadastrado no sistema.');
             }
-            
+
             // Verificar se já existe algum disco com o mesmo título
             $title = $releaseData['title'] ?? '';
             $baseSlug = Str::slug($title);
-            
+
             // Cria um slug totalmente único e garantido usando timestamp
-            // Isso evita QUALQUER possibilidade de duplicação  
+            // Isso evita QUALQUER possibilidade de duplicação
             $uniqueSlug = $baseSlug . '-' . time() . '-' . substr($releaseId, -4);
-            
+
             // Injetamos o slug diretamente nos dados
             $releaseData['_unique_slug'] = $uniqueSlug;
 
@@ -161,20 +161,20 @@ class VinylController extends Controller
 
             // Capturar o índice da imagem selecionada (padrão: 0 se não for especificado)
             $selectedCoverIndex = $request->input('selected_cover_index', 0);
-            
+
             // Criar o registro principal do vinyl - agora com o slug único e a imagem selecionada
             $vinylMaster = $this->vinylService->createOrUpdateVinylMaster($releaseData, $selectedCoverIndex);
-            
+
             // Sincronizar relacionamentos
             $this->vinylService->syncArtists($vinylMaster, $releaseData['artists'] ?? []);
             // Removido a sincronização de gêneros (não necessário)
             $this->vinylService->syncStyles($vinylMaster, $releaseData['styles'] ?? []);
-            
+
             // Verificar se há dados de gravadora antes de sincronizar
             if (!empty($releaseData['labels']) && !empty($releaseData['labels'][0])) {
                 $this->vinylService->associateRecordLabel($vinylMaster, $releaseData['labels'][0]);
             }
-            
+
             // Criar faixas e produto
             if (!empty($releaseData['tracklist'])) {
                 $this->vinylService->createOrUpdateTracks($vinylMaster, $releaseData['tracklist']);
@@ -182,10 +182,10 @@ class VinylController extends Controller
             $this->vinylService->createOrUpdateProduct($vinylMaster, $releaseData);
 
             DB::commit();
-            
+
             // Carregar relacionamentos para incluir na resposta
             $vinylMaster->load(['artists', 'recordLabel', 'styles', 'tracks']);
-            
+
             // Verificar formato da resposta (JSON ou redirecionamento)
             if ($isAjax) {
                 return response()->json([
@@ -200,7 +200,7 @@ class VinylController extends Controller
                     ]
                 ]);
             }
-            
+
             // Para submissão de formulário normal, redirecionar para a página de completar cadastro
             return redirect()->route('admin.vinyls.complete', $vinylMaster->id)
                 ->with('success', 'Disco salvo com sucesso!');
@@ -208,14 +208,14 @@ class VinylController extends Controller
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Erro ao salvar vinyl: ' . $e->getMessage());
-            
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
-                    'status' => 'error', 
+                    'status' => 'error',
                     'message' => 'Ocorreu um erro ao salvar o disco: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->back()->with('error', 'Ocorreu um erro ao salvar o disco: ' . $e->getMessage());
         }
     }
@@ -289,7 +289,7 @@ class VinylController extends Controller
             DB::beginTransaction();
 
             $vinyl->artists()->detach();
-            
+
             $vinyl->styles()->detach();
             $vinyl->tracks()->delete();
 
@@ -302,11 +302,11 @@ class VinylController extends Controller
             }
 
             if ($vinyl->cover_image) {
-                Storage::disk('public')->delete($vinyl->cover_image);
+                Storage::disk('media')->delete($vinyl->cover_image);
             }
 
             foreach ($vinyl->media as $media) {
-                Storage::disk('public')->delete($media->file_path);
+                Storage::disk('media')->delete($media->file_path);
                 $media->delete();
             }
 
@@ -335,10 +335,10 @@ class VinylController extends Controller
                 $image = $request->file('image');
                 $coverImageName = 'vinyl_covers/' . $vinyl->id . '_' . Str::random(10) . '.' . $image->getClientOriginalExtension();
 
-                Storage::disk('public')->put($coverImageName, file_get_contents($image));
+                Storage::disk('media')->put($coverImageName, file_get_contents($image));
 
                 if ($vinyl->cover_image) {
-                    Storage::disk('public')->delete($vinyl->cover_image);
+                    Storage::disk('media')->delete($vinyl->cover_image);
                 }
 
                 $vinyl->cover_image = $coverImageName;
@@ -377,10 +377,10 @@ class VinylController extends Controller
                 $coverImageContents = Http::get($coverImageUrl)->body();
                 $coverImageName = 'vinyl_covers/' . $vinyl->id . '_' . Str::random(10) . '.jpg';
 
-                Storage::disk('public')->put($coverImageName, $coverImageContents);
+                Storage::disk('media')->put($coverImageName, $coverImageContents);
 
                 if ($vinyl->cover_image) {
-                    Storage::disk('public')->delete($vinyl->cover_image);
+                    Storage::disk('media')->delete($vinyl->cover_image);
                 }
 
                 $vinyl->cover_image = $coverImageName;
@@ -409,7 +409,7 @@ class VinylController extends Controller
 
         try {
             if ($vinyl->cover_image) {
-                Storage::disk('public')->delete($vinyl->cover_image);
+                Storage::disk('media')->delete($vinyl->cover_image);
                 $vinyl->cover_image = null;
                 $vinyl->save();
 
@@ -446,7 +446,7 @@ class VinylController extends Controller
             $coverImageUrl = $releaseData['images'][0]['uri'];
             $coverImageContents = Http::get($coverImageUrl)->body();
             $coverImageName = 'vinyl_covers/' . $releaseData['id'] . '_' . Str::random(10) . '.jpg';
-            Storage::disk('public')->put($coverImageName, $coverImageContents);
+            Storage::disk('media')->put($coverImageName, $coverImageContents);
             $coverImagePath = $coverImageName;
         }
 
@@ -572,7 +572,7 @@ class VinylController extends Controller
     {
         try {
             $vinylMaster = VinylMaster::with('vinylSec.categories', 'tracks')->findOrFail($id);
-            
+
             // Carregando dados das tabelas relacionadas
             $weights = \App\Models\Weight::all();
             $dimensions = \App\Models\Dimension::all();
@@ -580,7 +580,7 @@ class VinylController extends Controller
             $midiaStatuses = \App\Models\MidiaStatus::orderBy('title')->get();
             $coverStatuses = \App\Models\CoverStatus::orderBy('title')->get();
             $suppliers = \App\Models\Supplier::orderBy('name')->get();
-            
+
             // Categorias selecionadas (se existirem)
             $selectedCategories = $vinylMaster->vinylSec ? $vinylMaster->vinylSec->categories->pluck('id')->toArray() : [];
             $tracks = $vinylMaster->tracks;
@@ -625,9 +625,14 @@ class VinylController extends Controller
             'buy_price'            => 'nullable|numeric|min:0',
             'promotional_price'    => 'nullable|numeric|min:0',
             'is_promotional'       => 'required|boolean',
+            'is_presale'           => 'required|boolean',
+            'presale_arrival_date' => 'nullable|date|required_if:is_presale,true',
             'in_stock'             => 'required|boolean',
             'track_youtube_urls'   => 'nullable|array',
             'track_youtube_urls.*' => 'nullable|url',
+            'tracks'               => 'nullable|array',
+            'tracks.*.name'        => 'required|string',
+            'tracks.*.duration'    => 'nullable|string',
             'category_ids'         => 'required|array',
             'category_ids.*'       => 'exists:cat_style_shop,id',
         ]);
@@ -656,23 +661,25 @@ class VinylController extends Controller
                 'buy_price' => $validatedData['buy_price'] ?? null,
                 'promotional_price' => $validatedData['promotional_price'] ?? null,
                 'is_promotional' => $validatedData['is_promotional'] ?? false,
+                'is_presale' => $validatedData['is_presale'] ?? false,
+                'presale_arrival_date' => $validatedData['presale_arrival_date'] ?? null,
                 'in_stock' => $validatedData['in_stock'] ?? true
             ];
-            
+
             // Verifica se já existe um VinylSec para este VinylMaster
             $vinylSec = VinylSec::where('vinyl_master_id', $vinylMaster->id)->first();
-            
+
             if ($vinylSec) {
                 // Se já existe, atualiza
                 // Certifique-se que os campos promocionais são mantidos se não forem fornecidos
                 if (!isset($vinylSecData['promo_starts_at']) && $vinylSec->promo_starts_at) {
                     $vinylSecData['promo_starts_at'] = $vinylSec->promo_starts_at;
                 }
-                
+
                 if (!isset($vinylSecData['promo_ends_at']) && $vinylSec->promo_ends_at) {
                     $vinylSecData['promo_ends_at'] = $vinylSec->promo_ends_at;
                 }
-                
+
                 $vinylSec->update($vinylSecData);
             } else {
                 // Se não existe, cria um novo
@@ -681,7 +688,7 @@ class VinylController extends Controller
                     $vinylSecData['promo_starts_at'] = null;
                     $vinylSecData['promo_ends_at'] = null;
                 }
-                
+
                 $vinylSec = VinylSec::create($vinylSecData);
             }
 
@@ -690,13 +697,13 @@ class VinylController extends Controller
                 $vinylMaster->categories()->sync($validatedData['category_ids']);
             }
 
-            // Atualiza as URLs do YouTube dos tracks, se enviadas
-            if (isset($validatedData['track_youtube_urls'])) {
-                foreach ($validatedData['track_youtube_urls'] as $trackId => $youtubeUrl) {
+            // Atualiza as faixas existentes
+            if (isset($validatedData['tracks'])) {
+                foreach ($validatedData['tracks'] as $trackId => $trackData) {
                     $track = $vinylMaster->tracks->find($trackId);
                     if ($track) {
-                        $track->youtube_url = $youtubeUrl ?: null;
-                        $track->save();
+                        $trackData['youtube_url'] = $validatedData['track_youtube_urls'][$trackId] ?? null;
+                        $track->update($trackData);
                     }
                 }
             }
@@ -710,7 +717,7 @@ class VinylController extends Controller
             // Log mais detalhado do erro
             Log::error('Error completing vinyl record: ' . $e->getMessage());
             Log::error('Error trace: ' . $e->getTraceAsString());
-            
+
             // Verifica se estamos em ambiente de desenvolvimento
             if (config('app.debug')) {
                 return redirect()->back()->withInput()
@@ -720,7 +727,7 @@ class VinylController extends Controller
                                     'line' => $e->getLine()
                                  ]);
             }
-            
+
             return redirect()->back()->withInput()
                              ->withErrors(['error' => 'Ocorreu um erro ao salvar o vinyl. Por favor, tente novamente.']);
         }
@@ -740,7 +747,7 @@ class VinylController extends Controller
                 'field' => 'required|string|in:is_promotional,in_stock',
                 'value' => 'required|boolean'
             ]);
-            
+
             $vinyl = VinylMaster::findOrFail($request->id);
 
             if (!$vinyl->vinylSec) {
@@ -756,7 +763,7 @@ class VinylController extends Controller
             $vinyl->vinylSec->update([
                 $request->field => $request->value
             ]);
-            
+
             // Construir mensagem de sucesso com base no campo atualizado
             $fieldName = $request->field === 'is_promotional' ? 'promoção' : 'estoque';
             $fieldStatus = $request->value ? 'ativado' : 'desativado';
@@ -774,7 +781,7 @@ class VinylController extends Controller
                     ]
                 ]);
             }
-            
+
             // Para submissões de formulário normais, redirecionar de volta com mensagem de sucesso
             return redirect()->back()->with('success', $successMessage);
         } catch (\Illuminate\Validation\ValidationException $e) {

@@ -33,11 +33,11 @@ class VinylMaster extends Model
     protected $casts = [
         'images' => 'array',
         'release_year' => 'integer',
-        
+
     ];
 
     protected $with = ['artists', 'tracks', 'vinylSec', 'recordLabel'];
-    
+
     /**
      * Relacionamento com a lista de desejos (para produtos disponíveis)
      */
@@ -45,7 +45,7 @@ class VinylMaster extends Model
     {
         return $this->hasMany(Wishlist::class, 'vinyl_master_id', 'id');
     }
-    
+
     /**
      * Relacionamento com a lista de interesse (para produtos indisponíveis)
      */
@@ -65,7 +65,7 @@ class VinylMaster extends Model
 
         return Wishlist::hasItem(Auth::id(), $this->id);
     }
-    
+
     /**
      * Verifica se o disco está na wantlist do usuário atual
      */
@@ -74,10 +74,10 @@ class VinylMaster extends Model
         if (!Auth::check()) {
             return false;
         }
-        
+
         return Wantlist::hasItem(Auth::id(), $this->id);
     }
-    
+
     /**
      * Verifica se o disco está disponível para compra
      * Um disco é considerado disponível se tiver estoque maior que zero
@@ -95,10 +95,10 @@ class VinylMaster extends Model
             // Só gera o slug se não estiver definido ou for vazio
             if (empty($vinylMaster->slug)) {
                 $baseSlug = Str::slug($vinylMaster->title);
-                
+
                 // Adicionar timestamp para garantir unicidade
                 $uniqueSlug = $baseSlug . '-' . time() . '-' . substr($vinylMaster->discogs_id, -4);
-                
+
                 $vinylMaster->slug = $uniqueSlug;
             }
         });
@@ -143,7 +143,7 @@ class VinylMaster extends Model
     {
         return 'slug';
     }
-    
+
     public function categories()
     {
         return $this->belongsToMany(CatStyleShop::class, 'cat_style_shop_vinyl_master', 'vinyl_master_id', 'cat_style_shop_id')
@@ -154,7 +154,7 @@ class VinylMaster extends Model
     {
         $contents = file_get_contents($url);
         $name = 'vinyl_covers/' . Str::random(40) . '.jpg';
-        Storage::disk('public')->put($name, $contents);
+        Storage::disk('media')->put($name, $contents);
         $this->cover_image = $name;
         $this->save();
     }
@@ -176,7 +176,7 @@ class VinylMaster extends Model
                     ->orderBy('playlist_tracks.position')
                     ->withTimestamps();
     }
-    
+
     /**
      * Verifica se este produto está no carrinho do usuário atual.
      *
@@ -192,12 +192,12 @@ class VinylMaster extends Model
             // Verificação para usuário logado
             $cart = auth()->user()->cart;
         }
-        
+
         // Se não houver carrinho, certamente o produto não está nele
         if (!$cart) {
             return false;
         }
-        
+
         // Verifica se o produto está no carrinho
         return $cart->items()
             ->whereHas('product', function($query) {

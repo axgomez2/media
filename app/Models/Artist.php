@@ -34,6 +34,30 @@ class Artist extends Model
                 $artist->slug = Str::slug($artist->name);
             }
         });
+
+        static::saving(function ($artist) {
+            // Se images for uma string, tenta decodificar
+            if (is_string($artist->images)) {
+                $artist->images = json_decode($artist->images, true);
+            }
+
+            // Se images for um array, garante o formato correto
+            if (is_array($artist->images) && !empty($artist->images)) {
+                // Garante que o caminho da imagem está no formato correto
+                $firstImage = $artist->images[0];
+                if (is_array($firstImage) && isset($firstImage['url'])) {
+                    // Já está no formato correto, não precisa fazer nada
+                } else {
+                    // Converte para o novo formato
+                    $artist->images = [
+                        [
+                            'url' => is_array($firstImage) ? ($firstImage['url'] ?? $firstImage) : $firstImage,
+                            'type' => 'primary'
+                        ]
+                    ];
+                }
+            }
+        });
     }
 
     public function vinylMasters()
@@ -50,43 +74,35 @@ class Artist extends Model
     {
         return 'slug';
     }
-    
+
     /**
      * Obter a URL da imagem do artista
-     * Compatível com imagens antigas e novas
      *
      * @return string|null URL da imagem ou null
      */
     public function getImageUrlAttribute()
     {
-        // Verificar o campo 'image'
-        if (!empty($this->image)) {
-            // Verificar se a imagem existe no storage
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->image)) {
-                return asset('storage/' . $this->image);
-            }
-            
-            // Se não existir, talvez seja um caminho relativo ou URL completa
-            if (filter_var($this->image, FILTER_VALIDATE_URL)) {
-                return $this->image;
-            }
-            
-            return asset('storage/' . $this->image);
-        }
-        
-        // Verificar o array 'images' (formato antigo)
-        if (!empty($this->images) && is_array($this->images) && isset($this->images[0])) {
+        // Verifica se temos imagens no formato array
+        if (!empty($this->images) && is_array($this->images)) {
             $firstImage = $this->images[0];
-            
-            // Se for um caminho completo ou URL
-            if (filter_var($firstImage, FILTER_VALIDATE_URL)) {
-                return $firstImage;
+
+            // Verifica se está no formato novo (array com url)
+            if (is_array($firstImage) && isset($firstImage['url'])) {
+                $imagePath = $firstImage['url'];
+            } else {
+                // Formato antigo (string direta)
+                $imagePath = is_array($firstImage) ? ($firstImage['url'] ?? $firstImage) : $firstImage;
             }
-            
-            // Se for um caminho de storage
-            return asset('storage/' . $firstImage);
+
+            // Se for uma URL completa, retorna direto
+            if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
+                return $imagePath;
+            }
+
+            // Caso contrário, assume que é um caminho do storage
+            return asset('storage/' . $imagePath);
         }
-        
+
         return null;
     }
 }

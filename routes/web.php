@@ -190,7 +190,7 @@ Route::prefix('orders')->name('admin.orders.')->group(function () {
 });
 
 // Tracks (Faixas de áudio)
-Route::resource('tracks', TrackController::class, ['as' => 'admin']);
+// Route::resource('tracks', TrackController::class, ['as' => 'admin']); // REMOVIDO PARA USAR ROTAS MANUAIS
 Route::post('vinyls/{vinyl}/tracks', [TrackController::class, 'storeForVinyl'])->name('admin.vinyls.tracks.store');
 Route::put('vinyls/{vinyl}/tracks/reorder', [TrackController::class, 'reorderTracks'])->name('admin.vinyls.tracks.reorder');
 
@@ -245,3 +245,10 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Rotas para Tracks
+    Route::prefix('tracks')->name('tracks.')->group(function () {
+        Route::delete('/{track}', [TrackController::class, 'destroy'])->name('destroy');
+    });
+});

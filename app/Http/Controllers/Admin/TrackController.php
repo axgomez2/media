@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\VinylMaster;
 use App\Models\Track;
+use Illuminate\Support\Facades\Log;
 
 class TrackController extends Controller
 {
@@ -45,6 +46,23 @@ class TrackController extends Controller
         $vinyl->tracks()->whereNotIn('id', array_column($tracks, 'id'))->delete();
 
         return redirect()->route('admin.vinyls.index')->with('success', 'faixas alteradas com sucesso');
+    }
+
+    /**
+     * Remove the specified track from storage.
+     *
+     * @param  \App\Models\Track  $track
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function destroy(Track $track)
+    {
+        try {
+            $track->delete();
+            return redirect()->back()->with('success', 'Faixa excluída com sucesso.');
+        } catch (\Exception $e) {
+            Log::error('Erro ao excluir faixa: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Ocorreu um erro ao excluir a faixa.');
+        }
     }
 }
 

@@ -32,6 +32,8 @@ class VinylSec extends Model
         'buy_price',
         'promotional_price',
         'is_promotional',
+        'is_presale',
+        'presale_arrival_date',
         'promo_starts_at',
         'promo_ends_at',
         'in_stock'
@@ -40,6 +42,8 @@ class VinylSec extends Model
     protected $casts = [
         'is_new' => 'boolean',
         'is_promotional' => 'boolean',
+        'is_presale' => 'boolean',
+        'presale_arrival_date' => 'date',
         'in_stock' => 'boolean',
         'promo_starts_at' => 'datetime',
         'promo_ends_at' => 'datetime',
@@ -64,17 +68,17 @@ class VinylSec extends Model
     {
         return $this->belongsTo(Dimension::class);
     }
-    
+
     public function midiaStatus()
     {
         return $this->belongsTo(MidiaStatus::class);
     }
-    
+
     public function coverStatus()
     {
         return $this->belongsTo(CoverStatus::class);
     }
-    
+
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);

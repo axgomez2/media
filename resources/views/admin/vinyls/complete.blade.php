@@ -98,11 +98,11 @@
                         <label class="block mb-2 text-sm font-medium text-gray-900">Em promoção?</label>
                         <div class="flex gap-4">
                             <div class="flex items-center">
-                                <input type="radio" name="is_promotional" value="1" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2">
+                                <input type="radio" name="is_promotional" value="1" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2" x-model="isPromotional">
                                 <label class="ml-2 text-sm font-medium text-gray-900">SIM</label>
                             </div>
                             <div class="flex items-center">
-                                <input type="radio" name="is_promotional" value="0" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2" checked>
+                                <input type="radio" name="is_promotional" value="0" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2" x-model="isPromotional">
                                 <label class="ml-2 text-sm font-medium text-gray-900">NÃO</label>
                             </div>
                         </div>
@@ -121,6 +121,28 @@
                                 <label class="ml-2 text-sm font-medium text-gray-900">Sem estoque</label>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Is Presale? -->
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-900">É pré-venda?</label>
+                        <div class="flex gap-4">
+                            <div class="flex items-center">
+                                <input type="radio" name="is_presale" value="1" id="is_presale_yes" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2" x-model="isPresale">
+                                <label for="is_presale_yes" class="ml-2 text-sm font-medium text-gray-900">Sim</label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="radio" name="is_presale" value="0" id="is_presale_no" class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 focus:ring-2" x-model="isPresale">
+                                <label for="is_presale_no" class="ml-2 text-sm font-medium text-gray-900">Não</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Presale Arrival Date (Conditional) -->
+                    <div x-show="isPresale === '1'">
+                        <label for="presale_arrival_date" class="block mb-2 text-sm font-medium text-gray-900">Data de Chegada (Pré-venda):</label>
+                        <input type="date" id="presale_arrival_date" name="presale_arrival_date"
+                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                     </div>
                 </div>
             </div>
@@ -215,8 +237,8 @@
                     <label for="promotional_price" class="block mb-2 text-sm font-medium text-gray-900">Preço promocional:</label>
                     <input type="number" id="promotional_price" name="promotional_price" step="0.01" min="0" value="{{ old('promotional_price', $vinylMaster->vinylSec->promotional_price ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                 </div>
-                
-                
+
+
             </div>
             <hr class="my-6">
 
@@ -257,7 +279,7 @@
                     <label for="barcode" class="block mb-2 text-sm font-medium text-gray-900">Código de Barras:</label>
                     <input type="text" id="barcode" name="barcode" value="{{ old('barcode', $vinylMaster->vinylSec->barcode ?? '') }}" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                 </div>
-                
+
                 <!-- Internal Code -->
                 <div>
                     <label for="internal_code" class="block mb-2 text-sm font-medium text-gray-900">Código interno da loja:</label>
@@ -288,9 +310,9 @@
                 </div>
             </div>
 
-           
 
-           
+
+
 
             <!-- Tracks Section -->
             <div class="mb-6">
@@ -302,31 +324,46 @@
                                 <th scope="col" class="px-6 py-3">Faixa</th>
                                 <th scope="col" class="px-6 py-3">Duração</th>
                                 <th scope="col" class="px-6 py-3">YouTube URL</th>
-                                <th scope="col" class="px-6 py-3">Ação</th>
+                                <th scope="col" class="px-6 py-3 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($tracks as $track)
                                 <tr class="bg-white border-b">
-                                    <td class="px-6 py-4">{{ $track->name }}</td>
-                                    <td class="px-6 py-4">{{ $track->duration }}</td>
                                     <td class="px-6 py-4">
-                                        <input type="url" name="track_youtube_urls[{{ $track->id }}]" value="{{ $track->youtube_url }}" 
-                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 youtube-url-input">
+                                        <input type="text" name="tracks[{{ $track->id }}][name]" value="{{ $track->name }}"
+                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                                     </td>
                                     <td class="px-6 py-4">
-                                        <button type="button" class="text-white bg-red-500 hover:bg-red-600 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-                                                @click="searchYouTube(@js($track->name), $event.target.closest('tr').querySelector('.youtube-url-input'))">
-                                            <svg class="w-4 h-4 mr-2 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                            Buscar
-                                        </button>
+                                        <input type="text" name="tracks[{{ $track->id }}][duration]" value="{{ $track->duration }}"
+                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <input type="url" name="tracks[{{ $track->id }}][youtube_url]" value="{{ $track->youtube_url }}"
+                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 youtube-url-input">
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <div class="flex items-center justify-center space-x-2">
+                                            <button type="button" class="text-white bg-red-500 hover:bg-red-600 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
+                                                    title="Buscar no YouTube"
+                                                    @click="searchYouTube('{{ $track->name }}', $event.target.closest('tr').querySelector('.youtube-url-input'))">
+                                                <i class="fab fa-youtube"></i>
+                                            </button>
+                                            <button type="submit"
+                                                    form="delete-track-{{ $track->id }}"
+                                                    onclick="return confirm('Tem certeza que deseja excluir esta faixa?');"
+                                                    class="text-white bg-gray-700 hover:bg-gray-800 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2"
+                                                    title="Excluir Faixa">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-          
+
             </div>
 
             <!-- Submit Button -->
@@ -336,6 +373,14 @@
                 </button>
             </div>
         </form>
+
+        <!-- Formulários ocultos para exclusão de faixas -->
+        @foreach($tracks as $track)
+            <form id="delete-track-{{ $track->id }}" action="{{ route('admin.tracks.destroy', $track->id) }}" method="POST" style="display:none;">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endforeach
     </div>
 
 
@@ -345,10 +390,10 @@
 
 <!-- Modal toggle -->
 
-  
+
   <!-- Main modal -->
 
-  
+
 
 
 
@@ -359,14 +404,14 @@
 
     <div x-show="showModal" class="fixed inset-0 bg-gray-500 bg-opacity-60 transition-opacity" @click="closeModal"></div>
     <div x-show="showModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-      
+
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-           
+
 
             <div x-show="showModal" class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Selecionar Vídeo do YouTube</h3>
-                    
+
                     <!-- Indicador de carregamento -->
                     <div x-show="searchLoading" class="flex justify-center items-center py-8">
                         <svg class="animate-spin -ml-1 mr-3 h-8 w-8 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -375,7 +420,7 @@
                         </svg>
                         <span class="text-gray-700 font-medium">Buscando no YouTube...</span>
                     </div>
-                    
+
                     <!-- Resultados -->
                     <div x-show="!searchLoading" class="space-y-4">
                         <template x-for="result in youtubeResults" :key="result.id.videoId">
@@ -402,8 +447,8 @@
                 </div>
             </div>
         </div>
-    </div> 
-    
+    </div>
+
     <!-- Category Add Modal -->
     <div x-show="showCategoryModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -414,19 +459,19 @@
                     @csrf
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Nova Categoria Interna</h3>
-                        
+
                         <div class="space-y-4">
                             <div>
                                 <label for="category_name" class="block mb-2 text-sm font-medium text-gray-900">Nome da Categoria:</label>
                                 <input type="text" id="category_name" name="name" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                             </div>
-                            
+
                             <div>
                                 <label for="category_slug" class="block mb-2 text-sm font-medium text-gray-900">Slug (opcional):</label>
                                 <input type="text" id="category_slug" name="slug" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
                                 <p class="mt-1 text-sm text-gray-500">Deixe em branco para gerar automaticamente a partir do nome</p>
                             </div>
-                            
+
                             <div>
                                 <label for="parent_id" class="block mb-2 text-sm font-medium text-gray-900">Categoria Pai (opcional):</label>
                                 <select id="parent_id" name="parent_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
@@ -438,7 +483,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                         <button type="submit" id="submitCategoryBtn" class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:ml-3 sm:w-auto sm:text-sm">
                             Adicionar Categoria
@@ -462,14 +507,15 @@ document.addEventListener('alpine:init', () => {
         youtubeResults: [],
         activeInputField: null,
         showCategoryModal: false,
-
+        isPromotional: '0',
+        isPresale: '0',
         searchLoading: false,
-        
+
         async searchYouTube(trackName, inputField) {
             this.activeInputField = inputField;
             const artistName = '{{ $vinylMaster->artists->pluck('name')->join(' ') }}';
             const query = `${artistName} ${trackName}`;
-            
+
             // Iniciar indicador de carregamento
             this.searchLoading = true;
             this.showModal = true;
@@ -477,10 +523,10 @@ document.addEventListener('alpine:init', () => {
 
             try {
                 console.log('Enviando busca para o YouTube:', query);
-                
+
                 const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
                 console.log('CSRF Token:', token);
-                
+
                 // Usando a URL absoluta para evitar problemas de rota
                 const response = await fetch('/youtube/search', {
                     method: 'POST',
@@ -530,7 +576,7 @@ document.addEventListener('alpine:init', () => {
 // Event listener para o formulário de categoria quando for enviado
 document.addEventListener('DOMContentLoaded', function() {
     const addCategoryForm = document.getElementById('addCategoryForm');
-    
+
     if (addCategoryForm) {
         addCategoryForm.addEventListener('submit', function(e) {
             // O formulário será enviado normalmente via POST

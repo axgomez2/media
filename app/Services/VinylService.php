@@ -43,7 +43,7 @@ class VinylService
             if (empty($releaseData['id']) || empty($releaseData['title'])) {
                 throw new \Exception('Dados do disco incompletos (ID e título são obrigatórios)');
             }
-            
+
             // Extrair dados do release de forma segura com valores padrão
             $discogsId = (string) $releaseData['id'];
             $title = $releaseData['title'] ?? '';
@@ -51,7 +51,7 @@ class VinylService
             $country = $releaseData['country'] ?? null;
             $description = $releaseData['notes'] ?? null;
             $discogsUrl = $releaseData['uri'] ?? null;
-            
+
             // Processar imagem de capa usando o índice selecionado pelo usuário
             $coverImage = null;
             if (!empty($releaseData['images']) && is_array($releaseData['images'])) {
@@ -60,14 +60,14 @@ class VinylService
                 if ($selectedCoverIndex < 0 || $selectedCoverIndex >= $totalImages) {
                     $selectedCoverIndex = 0; // Usar a primeira imagem como fallback
                 }
-                
+
                 // Obter a imagem no índice selecionado
                 $selectedImage = $releaseData['images'][$selectedCoverIndex];
-                
+
                 if (isset($selectedImage['uri'])) {
                     // Obter o conteúdo da imagem via DiscogsService
                     $imageContent = $this->discogsService->fetchImage($selectedImage['uri']);
-                    
+
                     // Se tiver conteúdo, salvar a imagem
                     if ($imageContent) {
                         $coverImage = $this->imageService->saveImageFromContents(
@@ -76,7 +76,7 @@ class VinylService
                         );
                     }
                 }
-                
+
                 // Fallback: Se não conseguimos obter a imagem selecionada, tentar a primeira imagem
                 if (empty($coverImage) && $selectedCoverIndex !== 0 && isset($releaseData['images'][0]['uri'])) {
                     $imageContent = $this->discogsService->fetchImage($releaseData['images'][0]['uri']);
@@ -88,16 +88,16 @@ class VinylService
                     }
                 }
             }
-            
+
             // Extrair nome da gravadora se disponível
             $labelName = null;
             if (!empty($releaseData['labels']) && is_array($releaseData['labels']) && !empty($releaseData['labels'][0]['name'])) {
                 $labelName = $releaseData['labels'][0]['name'];
             }
-            
+
             // Verificar se já existe um disco com este ID do Discogs
             $existingVinyl = VinylMaster::where('discogs_id', $discogsId)->first();
-            
+
             if ($existingVinyl) {
                 // Se já existe, apenas atualizar os outros campos, mantendo o slug original
                 $existingVinyl->update([
@@ -107,32 +107,32 @@ class VinylService
                     'description' => $description,
                     'discogs_url' => $discogsUrl,
                 ]);
-                
+
                 // Atualizar a imagem apenas se for fornecida uma nova
                 if ($coverImage) {
                     $existingVinyl->cover_image = $coverImage;
                     $existingVinyl->save();
                 }
-                
+
                 return $existingVinyl;
             } else {
                 // Usar o slug único fornecido pelo controller, se existir
                 $slug = $releaseData['_unique_slug'] ?? null;
-                
+
                 // Se não tiver sido fornecido um slug único, criar um
                 if (empty($slug)) {
                     // Para novos registros, garantir slug único
                     $baseSlug = Str::slug($title);
-                    
+
                     // Se o slug estiver vazio, usar fallback
                     if (empty($baseSlug)) {
                         $baseSlug = 'vinyl-' . substr(md5($title . time()), 0, 8);
                     }
-                    
+
                     // Adicionar timestamp e parte do ID do Discogs para garantir unicidade absoluta
                     $slug = $baseSlug . '-' . time() . '-' . substr($discogsId, -4);
                 }
-                
+
                 // Criar novo vinyl com slug único garantido
                 $newVinyl = new VinylMaster([
                     'discogs_id' => $discogsId,
@@ -144,7 +144,7 @@ class VinylService
                     'cover_image' => $coverImage,
                     'discogs_url' => $discogsUrl,
                 ]);
-                
+
                 $newVinyl->save();
                 return $newVinyl;
             }
@@ -166,96 +166,97 @@ class VinylService
         if (empty($artists)) {
             return;
         }
-        
+
         try {
             $artistIds = collect($artists)->map(function ($artistData) {
                 // Validar se tem os dados necessários
                 if (empty($artistData['name'])) {
                     return null;
                 }
-                
+
                 // Normalizar nome do artista
                 $artistName = trim($artistData['name']);
                 $artistSlug = Str::slug($artistName);
                 $artistDiscogsId = $artistData['id'] ?? null;
-                
+
                 // Informações extras do artista
                 $artistFields = [
                     'slug' => $artistSlug,
                     'discogs_id' => $artistDiscogsId
                 ];
-                
+
                 // Adicionar URL do Discogs, se disponível
                 if (!empty($artistData['resource_url'])) {
                     $artistFields['discogs_url'] = str_replace('api.', '', $artistData['resource_url']);
                 }
-                
-                // Obter perfil do artista, se disponível e não tivermos um perfil ainda
-                if (!empty($artistData['resource_url']) && empty($artist->profile)) {
-                    try {
-                        // Se tiver uma URL de recurso, podemos tentar obter mais dados
-                        $artistDetails = $this->discogsService->getArtistDetails($artistDiscogsId);
-                        
-                        if ($artistDetails && isset($artistDetails['profile'])) {
-                            $artistFields['profile'] = $artistDetails['profile'];
+
+                // Buscar ou criar o artista
+                $artist = Artist::firstOrNew(['discogs_id' => $artistDiscogsId]);
+                $artist->name = $artistName;
+
+                // Se é um novo artista ou não tem imagem ainda
+                if (!$artist->exists || empty($artist->images)) {
+                    // Obter detalhes do artista do Discogs
+                    $artistDetails = $this->discogsService->getArtistDetails($artistDiscogsId);
+
+                    if ($artistDetails) {
+                        // Adicionar perfil se disponível
+                        if (!empty($artistDetails['profile'])) {
+                            $artist->profile = $artistDetails['profile'];
                         }
-                        
-                        // Buscar e salvar imagem do artista
+
+                        // Processar imagem do artista
                         if (!empty($artistDetails['images']) && is_array($artistDetails['images'])) {
-                            foreach ($artistDetails['images'] as $image) {
-                                if (isset($image['uri'])) {
-                                    $imageContent = $this->discogsService->fetchImage($image['uri']);
-                                    if ($imageContent) {
-                                        $imagePath = $this->imageService->saveImageFromContents(
-                                            $imageContent,
-                                            'artist-' . $artistDiscogsId,
-                                            'jpg',
-                                            null,
-                                            'artist'
-                                        );
-                                        
-                                        if ($imagePath) {
-                                            // Salvar como JSON, pois o campo 'images' é do tipo JSON na tabela
-                                            $artistFields['images'] = json_encode([[
-                                                'url' => $imagePath,
-                                                'type' => 'primary',
-                                                'width' => null,
-                                                'height' => null
-                                            ]]);
-                                            break;
-                                        }
-                                    }
+                            $primaryImage = $artistDetails['images'][0];
+
+                            if (!empty($primaryImage['uri'])) {
+                                // Baixar e salvar a imagem
+                                $imageContent = $this->discogsService->fetchImage($primaryImage['uri']);
+
+                                if ($imageContent) {
+                                    $imagePath = $this->imageService->saveImageFromContents(
+                                        $imageContent,
+                                        $artistDiscogsId,
+                                        'jpg',
+                                        null,
+                                        'artist'
+                                    );
+
+                                    // Salvar no formato padronizado
+                                    $artist->images = [
+                                        [
+                                            'url' => $imagePath,
+                                            'type' => 'primary'
+                                        ]
+                                    ];
                                 }
                             }
                         }
-                    } catch (\Exception $artistError) {
-                        Log::warning('Erro ao buscar detalhes do artista: ' . $artistError->getMessage());
-                        // Continuar mesmo se não conseguir obter detalhes extras
                     }
                 }
-                
-                // Criar ou atualizar artista
-                $artist = Artist::updateOrCreate(
-                    ['name' => $artistName],
-                    $artistFields
-                );
-                
+
+                // Mesclar e salvar todos os campos
+                foreach ($artistFields as $field => $value) {
+                    $artist->$field = $value;
+                }
+
+                $artist->save();
+
                 return $artist->id;
-            })->filter(); // Remover valores null
-            
-            // Sincroniza apenas se tiver artistas válidos
-            if ($artistIds->isNotEmpty()) {
-                $vinylMaster->artists()->sync($artistIds);
-            }
+            })->filter();
+
+            // Sincronizar artistas com o vinyl
+            $vinylMaster->artists()->sync($artistIds);
+
         } catch (\Exception $e) {
             Log::error('Erro ao sincronizar artistas: ' . $e->getMessage());
-            // Não propagamos o erro para não interromper o fluxo principal
+            throw $e;
         }
     }
 
     /**
      * Método removido: Sincronização de gêneros
-     * 
+     *
      * Este projeto não utiliza a entidade Genre, por isso o método foi removido.
      */
     // O método syncGenres foi removido pois não usamos a entidade Genre neste projeto
@@ -272,17 +273,17 @@ class VinylService
         if (empty($styles)) {
             return;
         }
-        
+
         try {
             $styleIds = collect($styles)->map(function ($styleName) {
                 // Garantir que temos um valor válido
                 if (empty($styleName) || !is_string($styleName)) {
                     return null;
                 }
-                
+
                 // Normalizar o nome do estilo
                 $name = trim($styleName);
-                
+
                 $style = Style::updateOrCreate(
                     ['name' => $name],
                     ['slug' => Str::slug($name)]
@@ -314,35 +315,35 @@ class VinylService
             if (!$labelData || empty($labelData['name'])) {
                 return;
             }
-            
+
             // Normalizar o nome da gravadora
             $labelName = trim($labelData['name']);
             $labelSlug = Str::slug($labelName);
             $labelDiscogsId = $labelData['id'] ?? null;
-            
+
             // Campos a serem atualizados/criados
             $labelFields = ['slug' => $labelSlug];
-            
+
             // Adicionar ID do Discogs se disponível
             if ($labelDiscogsId) {
                 $labelFields['discogs_id'] = $labelDiscogsId;
             }
-            
+
             // Adicionar URL do Discogs, se disponível
             if (!empty($labelData['resource_url'])) {
                 $labelFields['discogs_url'] = str_replace('api.', '', $labelData['resource_url']);
             }
-            
+
             // Tentar obter mais detalhes da gravadora, se tivermos o ID
             if ($labelDiscogsId) {
                 try {
                     $labelDetails = $this->discogsService->getLabelDetails($labelDiscogsId);
-                    
+
                     // Adicionar descrição se disponível
                     if (!empty($labelDetails['profile'])) {
                         $labelFields['description'] = $labelDetails['profile'];
                     }
-                    
+
                     // Buscar e salvar logo da gravadora
                     if (!empty($labelDetails['images']) && is_array($labelDetails['images'])) {
                         foreach ($labelDetails['images'] as $image) {
@@ -356,7 +357,7 @@ class VinylService
                                         null,
                                         'label'
                                     );
-                                    
+
                                     if ($imagePath) {
                                         $labelFields['logo'] = $imagePath;
                                         break;
@@ -370,7 +371,7 @@ class VinylService
                     // Continuar mesmo se não conseguir obter detalhes extras
                 }
             }
-            
+
             // Verificar se já temos thumbnail_url no $labelData
             if (empty($labelFields['logo']) && !empty($labelData['thumbnail_url'])) {
                 try {
@@ -383,7 +384,7 @@ class VinylService
                             null,
                             'label'
                         );
-                        
+
                         if ($imagePath) {
                             $labelFields['logo'] = $imagePath;
                         }
@@ -392,13 +393,13 @@ class VinylService
                     Log::warning('Erro ao salvar thumbnail da gravadora: ' . $imgError->getMessage());
                 }
             }
-            
+
             // Criar ou atualizar a gravadora
             $label = RecordLabel::updateOrCreate(
                 ['name' => $labelName],
                 $labelFields
             );
-            
+
             // Associar a gravadora ao disco
             $vinylMaster->recordLabel()->associate($label);
             $vinylMaster->save();
@@ -420,40 +421,40 @@ class VinylService
         if (empty($tracklist) || !is_array($tracklist)) {
             return;
         }
-        
+
         try {
             // Remover faixas existentes para evitar duplicação
             $vinylMaster->tracks()->delete();
-            
+
             // Processar cada faixa na lista
             foreach ($tracklist as $position => $trackData) {
                 // Verificar se há dados válidos para a faixa
                 if (empty($trackData) || empty($trackData['title'])) {
                     continue;
                 }
-                
+
                 // Normalizar o título da faixa
                 $title = trim($trackData['title']);
                 $duration = !empty($trackData['duration']) ? trim($trackData['duration']) : null;
                 $position = $position + 1; // Posição iniciando em 1
-                
+
                 // Extrair informações adicionais, se disponíveis
                 $extraInfo = [];
                 if (!empty($trackData['extraartists'])) {
                     $extraArtists = collect($trackData['extraartists'])->map(function ($artist) {
                         return $artist['name'] . ' (' . $artist['role'] . ')';
                     })->implode(', ');
-                    
+
                     $extraInfo['extra_artists'] = $extraArtists;
                 }
-                
+
                 if (!empty($trackData['type_'])) {
                     $extraInfo['type'] = $trackData['type_'];
                 }
-                
+
                 // Salvar informações extras como JSON, se houver
                 $extraInfoJson = !empty($extraInfo) ? json_encode($extraInfo, JSON_UNESCAPED_UNICODE) : null;
-                
+
                 // Converter duração do formato MM:SS para segundos, se disponível
                 $durationSeconds = null;
                 if ($duration) {
@@ -464,7 +465,7 @@ class VinylService
                         $durationSeconds = ($minutes * 60) + $seconds;
                     }
                 }
-                
+
                 // Criar a faixa com campos adicionais
                 Track::updateOrCreate(
                     [
@@ -497,17 +498,17 @@ class VinylService
     {
         try {
             $productType = ProductType::where('slug', 'vinyl')->firstOrFail();
-            
+
             // Extrair informações necessárias
             $title = $releaseData['title'] ?? $vinylMaster->title;
             $discogsId = $releaseData['id'] ?? $vinylMaster->discogs_id;
             $description = $releaseData['notes'] ?? $vinylMaster->description;
-            
+
             // Verificar se já existe um produto para este vinyl
             $existingProduct = Product::where('productable_id', $vinylMaster->id)
                 ->where('productable_type', 'App\\Models\\VinylMaster')
                 ->first();
-            
+
             if ($existingProduct) {
                 // Se já existe, atualizar sem modificar o slug
                 $existingProduct->update([
@@ -515,15 +516,15 @@ class VinylService
                     'description' => $description,
                     'product_type_id' => $productType->id,
                 ]);
-                
+
                 return $existingProduct;
             } else {
                 // Para novos produtos, gerar um slug único
                 $baseSlug = Str::slug($title);
-                
+
                 // Adicionar timestamp e parte do ID do Discogs para garantir unicidade
                 $uniqueSlug = $baseSlug . '-' . time() . '-' . substr($discogsId, -4);
-                
+
                 // Criar o produto com o slug único
                 $product = new Product([
                     'productable_id' => $vinylMaster->id,
@@ -533,7 +534,7 @@ class VinylService
                     'description' => $description,
                     'product_type_id' => $productType->id,
                 ]);
-                
+
                 $product->save();
                 return $product;
             }
@@ -609,9 +610,9 @@ class VinylService
 
         // Lista de campos permitidos para atualização
         $allowedFields = [
-            'weight_id', 'dimension_id', 'quantity', 'price', 
+            'weight_id', 'dimension_id', 'quantity', 'price',
             'buy_price', 'promotional_price', 'is_promotional', 'in_stock',
-            'cover_status', 'midia_status', 'format', 'num_discs', 
+            'cover_status', 'midia_status', 'format', 'num_discs',
             'speed', 'edition', 'notes', 'is_new'
         ];
 
@@ -621,7 +622,7 @@ class VinylService
 
         return $vinyl->vinylSec->update([$field => $value]);
     }
-    
+
     /**
      * Gera um slug único para o disco combinando título, ano e gravadora
      *
@@ -635,19 +636,19 @@ class VinylService
     {
         // Normalizar o título removendo caracteres especiais e tornando minúsculo
         $normalizedTitle = trim($title);
-        
+
         // Criar slug base apenas com o título
         $baseSlug = Str::slug($normalizedTitle);
         if (empty($baseSlug)) {
             // Fallback se o slug ficar vazio
             $baseSlug = 'vinyl-' . substr(md5($title), 0, 8);
         }
-        
+
         // Adicionar ano se disponível
         if (!empty($year)) {
             $baseSlug .= '-' . $year;
         }
-        
+
         // Adicionar gravadora se disponível
         if (!empty($label)) {
             $labelSlug = Str::slug($label);
@@ -655,20 +656,20 @@ class VinylService
                 $baseSlug .= '-' . $labelSlug;
             }
         }
-        
+
         // Adicionar parte do discogsId para garantir maior unicidade
         // Mesmo sem verificar duplicidade, já incluir parte do ID
         $baseSlug .= '-' . substr($discogsId, -4);
-        
+
         // Verificar se já existe um disco com este slug (qualquer disco, não apenas com discogs_id diferente)
         $slug = $baseSlug;
         $count = 1;
-        
+
         while (VinylMaster::where('slug', $slug)->exists()) {
             $count++;
             $slug = $baseSlug . '-' . $count;
         }
-        
+
         return $slug;
     }
 }

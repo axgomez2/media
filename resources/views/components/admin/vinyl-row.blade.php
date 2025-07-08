@@ -1,8 +1,7 @@
-<tr class="bg-white border-b hover:bg-zinc-200 ">
-    <td class="p-4">
+<tr class="bg-white border-b hover:bg-gray-50">
+    <td class="p-4 w-32">
         <img class="w-16 h-16 rounded-lg object-cover"
-             src="{{ $vinyl->cover_image ? asset('storage/' . $vinyl->cover_image) : asset('assets/images/placeholder.jpg') }}">
-            
+             src="{{ $vinyl->cover_image ? route('media.show', ['path' => $vinyl->cover_image]) : asset('images/borken.png') }}">
     </td>
     <td class="px-2 py-4">
         <div class="font-semibold text-gray-900">
@@ -17,7 +16,7 @@
             <div class="text-sm {{ $allTracksHaveYoutube ? 'text-green-800' : 'text-red-800' }} text-xs font-medium   mt-2">
                 Faixas: {{ $totalTracks }} ({{ $tracksWithYoutube }} com YouTube)
             </div>
-       
+
     </td>
     <td class="px-6 py-4 font-medium text-gray-900">R$ {{ $vinyl->vinylSec->price ?? '--' }}</td>
     <td class="px-6 py-4 font-medium text-gray-900">R$ {{ $vinyl->vinylSec->promotional_price ?? '--' }}</td>
@@ -63,14 +62,14 @@
         </div>
     </td>
     <td class="px-6 py-4">
-        
-<button type="button" data-modal-target="crypto-modal" data-modal-toggle="crypto-modal" class="text-gray-900 bg-sky-500 hover:bg-sky-600 border border-sky-500 focus:ring-4 focus:outline-none focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center">
+
+<button type="button" data-modal-target="crypto-modal-{{ $vinyl->id }}" data-modal-toggle="crypto-modal-{{ $vinyl->id }}" class="text-gray-900 bg-sky-500 hover:bg-sky-600 border border-sky-500 focus:ring-4 focus:outline-none focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center">
     <svg aria-hidden="true" class="w-4 h-4 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
    Clique para abrir
     </button>
-    
+
     <!-- Main modal -->
-    <div id="crypto-modal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div id="crypto-modal-{{ $vinyl->id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
         <div class="relative p-4 w-full max-w-md max-h-full">
             <!-- Modal content -->
             <div class="relative bg-white rounded-lg shadow-sm">
@@ -79,7 +78,7 @@
                     <h3 class="text-lg font-semibold text-gray-900">
                        Central de ações:
                     </h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm h-8 w-8 ms-auto inline-flex justify-center items-center" data-modal-toggle="crypto-modal">
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm h-8 w-8 ms-auto inline-flex justify-center items-center" data-modal-toggle="crypto-modal-{{ $vinyl->id }}">
                         <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
                         </svg>
@@ -88,7 +87,7 @@
                 </div>
                 <!-- Modal body -->
                 <div class="p-4 md:p-5">
-                    <p class="text-sm font-normal text-gray-700 ">O que você deseja fazer no disco: </p> 
+                    <p class="text-sm font-normal text-gray-700 ">O que você deseja fazer no disco: </p>
                     <p class="pt-2" ><strong>{{ $vinyl->artists->pluck('name')->join(', ') }} - {{ $vinyl->title }}</strong>?</p>
                     <ul class="my-4 space-y-3">
                         <li>
@@ -99,7 +98,7 @@
                             </a>
                         </li>
 
-                        
+
                         <li>
                             <a href="{{ route('admin.vinyls.edit-tracks', $vinyl->id) }}" class="flex items-center p-3 text-base font-bold text-gray-900 rounded-lg bg-sky-400 hover:bg-sky-500 group hover:shadow ">
                                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -133,7 +132,7 @@
                             <a href="{{ route('admin.vinyls.complete', $vinyl->id) }}" class="flex items-center p-3 text-base font-bold text-gray-900 rounded-lg bg-gray-50 hover:bg-gray-100 group hover:shadow ">
                                 <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                                </svg>                                
+                                </svg>
                                 <span class="flex-1 ms-3 whitespace-nowrap">Completar o cadastro do disco</span>
                             </a>
                         </li>
@@ -154,11 +153,11 @@
                                   <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
                                   </svg>
-                                  Excluir o disco 
+                                  Excluir o disco
                               </button>
                           </form>
                         </li>
-                        
+
                     </ul>
                     <div>
                         <a href="{{ route('admin.vinyls.index') }}" class="inline-flex items-center text-xs font-normal text-gray-500 hover:underline ">
@@ -171,6 +170,6 @@
             </div>
         </div>
     </div>
-    
+
     </td>
 </tr>

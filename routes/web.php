@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Hash;
 
 
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\ImageController;
 
 // Rota inicial acessível por todos
 Route::get('/', function () {
@@ -250,3 +251,12 @@ Route::middleware(['auth', 'admin'])->group(function () {
         Route::delete('/{track}', [TrackController::class, 'destroy'])->name('destroy');
     });
 });
+
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Rotas para Tracks
+    Route::prefix('tracks')->name('tracks.')->group(function () {
+        Route::delete('/{track}', [TrackController::class, 'destroy'])->name('destroy');
+    });
+});
+
+Route::get('/media-externa/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('media.show');

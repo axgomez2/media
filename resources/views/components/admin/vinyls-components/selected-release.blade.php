@@ -124,11 +124,11 @@
         </div>
 
 
-        
+
 
         <!-- Details Column -->
         <div class="md:col-span-2 space-y-6">
-            
+
 <div id="accordion-collapse" data-accordion="collapse">
     <h2 id="accordion-collapse-heading-1">
       <button type="button" class="flex items-center justify-between w-full p-5 font-medium rtl:text-right text-gray-500 border border-b-0 border-gray-200 rounded-t-xl focus:ring-4 focus:ring-gray-200  gap-3" data-accordion-target="#accordion-collapse-body-1" aria-expanded="true" aria-controls="accordion-collapse-body-1">
@@ -179,7 +179,7 @@
                 </div>
                 @endif
             @endif
-        </div>  
+        </div>
       </div>
     </div>
     <h2 id="accordion-collapse-heading-2">
@@ -194,6 +194,39 @@
       <div class="p-5 border border-b-0 border-gray-200">
         <div class="bg-gray-50 p-4 rounded-lg">
             <h4 class="text-lg font-semibold mb-3 text-gray-900">Informações de Mercado (Discogs)</h4>
+
+            <!-- Estatísticas de Preço -->
+            <div class="mb-6 p-4 border border-blue-200 bg-blue-50 rounded-lg">
+                <h5 class="text-base font-semibold mb-3 text-blue-800">Preços e Vendas</h5>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <h6 class="text-xs font-medium text-gray-500">Preço Sugerido</h6>
+                        <p class="text-xl font-bold text-green-600">
+                            {{ isset($release['suggested_price']) && $release['suggested_price'] > 0 ? 'R$ ' . number_format($release['suggested_price'], 2, ',', '.') : 'N/A' }}
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="text-xs font-medium text-gray-500">Menor Preço (Global)</h6>
+                        <p class="text-lg font-semibold text-gray-800">
+                            {{ isset($release['lowest_price']) && $release['lowest_price'] > 0 ? 'R$ ' . number_format($release['lowest_price'], 2, ',', '.') : 'N/A' }}
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="text-xs font-medium text-gray-500">Preço Médio (Global)</h6>
+                        <p class="text-lg font-semibold text-gray-800">
+                            {{ isset($release['median_price']) && $release['median_price'] > 0 ? 'R$ ' . number_format($release['median_price'], 2, ',', '.') : 'N/A' }}
+                        </p>
+                    </div>
+                     <div>
+                        <h6 class="text-xs font-medium text-gray-500">Cópias à Venda</h6>
+                        <p class="text-lg font-semibold text-gray-800">{{ $release['num_for_sale'] ?? '0' }}</p>
+                    </div>
+                </div>
+                @if(isset($release['price_source']))
+                    <p class="text-xs text-gray-500 mt-2">Fonte do preço sugerido: <span class="font-medium">{{ $release['price_source'] }}</span></p>
+                @endif
+            </div>
+
             <!-- Estatísticas do Disco -->
             <div class="grid grid-cols-1 gap-6">
                 <!-- Identificadores -->
@@ -471,13 +504,13 @@
     </div>
   </div>
 
-  
+
 
             <!-- Market Info -->
-        
+
 
             <!-- Tracklist -->
-           
+
 
             <!-- Notes -->
             @if(isset($release['notes']))

@@ -1,6 +1,4 @@
-@extends('layouts.admin')
-
-@section('content')
+<x-admin-layout title="exibir faixa">
 <div class="p-4">
     <div class="flex justify-between items-center mb-4">
         <h1 class="text-2xl font-semibold text-gray-900 sm:text-3xl dark:text-white">Detalhes do Disco: {{ $vinyl->title }}</h1>
@@ -23,16 +21,6 @@
                     <dd class="mt-1 text-sm text-gray-900 dark:text-white">
                         @foreach($vinyl->artists as $artist)
                             {{ $artist->name }}@if(!$loop->last), @endif
-                        @endforeach
-                    </dd>
-                </div>
-                <div class="sm:col-span-1">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Gêneros</dt>
-                    <dd class="mt-1 text-sm text-gray-900 dark:text-white">
-                        @foreach($vinyl->genres as $genre)
-                            <span class="bg-blue-100 text-blue-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
-                                {{ $genre->name }}
-                            </span>
                         @endforeach
                     </dd>
                 </div>
@@ -118,21 +106,7 @@
             <h2 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Estatísticas</h2>
             <dl class="grid grid-cols-2 gap-4">
                 <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Cliques no Card</dt>
-                    <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $cardClicks }}</dd>
-                </div>
-                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Na Wishlist</dt>
-                    <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $wishlistCount }}</dd>
-                </div>
-                @if(!$vinyl->vinylSec->in_stock)
-                    <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-                        <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Na Want List</dt>
-                        <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $wantListCount }}</dd>
-                    </div>
-                @endif
-                <div class="p-4 bg-gray-50 rounded-lg dark:bg-gray-700">
-                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Em Carrinhos Incompletos</dt>
+                    <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Carrinhos (Abertos)</dt>
                     <dd class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ $incompleteCartsCount }}</dd>
                 </div>
             </dl>
@@ -183,4 +157,4 @@
         </form>
     </div>
 </div>
-@endsection
+</x-admin-layout>

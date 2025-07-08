@@ -315,72 +315,74 @@
 
 
             <!-- Tracks Section -->
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4 text-gray-900">Faixas: importante</h3>
-                <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+            <div class="mb-6" x-data="{ tracks: {{ json_encode($vinylMaster->tracks) }} }">
+                <h3 class="text-lg font-semibold mb-3 text-gray-900">Faixas do Disco</h3>
+                <div class="overflow-x-auto">
                     <table class="w-full text-sm text-left text-gray-500">
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50">
                             <tr>
-                                <th scope="col" class="px-6 py-3">Faixa</th>
+                                <th scope="col" class="px-6 py-3">Posição</th>
+                                <th scope="col" class="px-6 py-3">Título</th>
                                 <th scope="col" class="px-6 py-3">Duração</th>
-                                <th scope="col" class="px-6 py-3">YouTube URL</th>
+                                <th scope="col" class="px-6 py-3">URL YouTube</th>
                                 <th scope="col" class="px-6 py-3 text-center">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($tracks as $track)
-                                <tr class="bg-white border-b">
-                                    <td class="px-6 py-4">
-                                        <input type="text" name="tracks[{{ $track->id }}][name]" value="{{ $track->name }}"
-                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <input type="text" name="tracks[{{ $track->id }}][duration]" value="{{ $track->duration }}"
-                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5">
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <input type="url" name="tracks[{{ $track->id }}][youtube_url]" value="{{ $track->youtube_url }}"
-                                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 youtube-url-input">
-                                    </td>
-                                    <td class="px-6 py-4 text-center">
-                                        <div class="flex items-center justify-center space-x-2">
-                                            <button type="button" class="text-white bg-red-500 hover:bg-red-600 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2"
-                                                    title="Buscar no YouTube"
-                                                    @click="searchYouTube('{{ $track->name }}', $event.target.closest('tr').querySelector('.youtube-url-input'))">
-                                                <i class="fab fa-youtube"></i>
-                                            </button>
-                                            <button type="submit"
-                                                    form="delete-track-{{ $track->id }}"
-                                                    onclick="return confirm('Tem certeza que deseja excluir esta faixa?');"
-                                                    class="text-white bg-gray-700 hover:bg-gray-800 focus:ring-4 focus:ring-gray-300 font-medium rounded-lg text-sm px-4 py-2"
-                                                    title="Excluir Faixa">
-                                                <i class="fas fa-trash-alt"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
+                            @foreach ($vinylMaster->tracks as $index => $track)
+                            <tr class="bg-white border-b hover:bg-gray-50">
+                                <td class="px-6 py-4">{{ $track->position }}</td>
+                                <td class="px-6 py-4 font-medium text-gray-900">{{ $track->name }}</td>
+                                <td class="px-6 py-4">{{ $track->duration }}</td>
+                                <td class="px-6 py-4">
+                                     <input type="text" name="tracks[{{ $track->id }}][youtube_url]" value="{{ old('tracks.'.$track->id.'.youtube_url', $track->youtube_url) }}" class="youtube-url-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                </td>
+                                <td class="px-6 py-4">
+                                     <div class="flex items-center justify-center space-x-2">
+                                         <button type="button" @click.prevent="searchYouTube('{{ $track->name }}', $event.target.closest('tr').querySelector('.youtube-url-input'))" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2" title="Buscar no YouTube">
+                                             <i class="fab fa-youtube"></i>
+                                         </button>
+                                    </div>
+                                </td>
+                            </tr>
                             @endforeach
                         </tbody>
                     </table>
                 </div>
-
             </div>
 
-            <!-- Submit Button -->
-            <div class="flex justify-end">
+
+            <!-- YouTube Modal -->
+            <div x-show="showYouTubeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50" @click.away="showYouTubeModal = false" style="display: none;">
+                <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-auto p-6">
+                    <h3 class="text-xl font-semibold mb-4">Resultados da busca no YouTube</h3>
+                    <div x-show="isLoading" class="text-center">
+                        <p>Buscando vídeos...</p>
+                    </div>
+                    <div x-show="!isLoading" class="space-y-3 max-h-96 overflow-y-auto">
+                        <template x-for="video in youtubeResults" :key="video.id.videoId">
+                            <div @click="selectVideo(video.id.videoId)" class="flex items-center p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
+                                <img :src="video.snippet.thumbnails.default.url" alt="" class="w-24 h-auto mr-4 rounded">
+                                <div>
+                                    <p class="font-semibold" x-text="video.snippet.title"></p>
+                                    <p class="text-sm text-gray-600" x-text="video.snippet.channelTitle"></p>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="mt-4 text-right">
+                        <button @click="showYouTubeModal = false" class="px-4 py-2 bg-gray-200 rounded-lg">Fechar</button>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="flex justify-end mt-6">
                 <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5">
                     Completar cadastro
                 </button>
             </div>
         </form>
-
-        <!-- Formulários ocultos para exclusão de faixas -->
-        @foreach($tracks as $track)
-            <form id="delete-track-{{ $track->id }}" action="{{ route('admin.tracks.destroy', $track->id) }}" method="POST" style="display:none;">
-                @csrf
-                @method('DELETE')
-            </form>
-        @endforeach
     </div>
 
 
@@ -510,6 +512,8 @@ document.addEventListener('alpine:init', () => {
         isPromotional: '0',
         isPresale: '0',
         searchLoading: false,
+        showYouTubeModal: false,
+        isLoading: false,
 
         async searchYouTube(trackName, inputField) {
             this.activeInputField = inputField;
@@ -569,6 +573,41 @@ document.addEventListener('alpine:init', () => {
             this.showModal = false;
             this.youtubeResults = [];
             this.activeInputField = null;
+        },
+
+        searchYouTube(trackTitle, urlInput) {
+            this.isLoading = true;
+            this.showYouTubeModal = true;
+            this.youtubeResults = [];
+            this.activeUrlInput = urlInput;
+
+            fetch("{{ route('youtube.search') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ query: trackTitle })
+            })
+            .then(response => response.json())
+            .then(data => {
+                this.youtubeResults = data || [];
+                this.isLoading = false;
+            })
+            .catch(error => {
+                console.error('Error fetching YouTube videos:', error);
+                this.isLoading = false;
+                alert('Ocorreu um erro ao buscar os vídeos do YouTube.');
+            });
+        },
+
+        selectVideo(videoId) {
+            if (this.activeUrlInput) {
+                this.activeUrlInput.value = `https://www.youtube.com/watch?v=${videoId}`;
+                // Trigger input event for any other listeners
+                this.activeUrlInput.dispatchEvent(new Event('input'));
+            }
+            this.showYouTubeModal = false;
         }
     }));
 });

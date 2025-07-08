@@ -1,6 +1,6 @@
 <x-admin-layout title="Discos">
 
-    
+
 
 
 
@@ -31,7 +31,7 @@
                 </a>
             </div>
 
-            <form method="GET" action="{{ route('admin.vinyls.index') }}" class="flex gap-4">
+            <form method="GET" action="{{ route('admin.vinyls.index') }}" id="filter-form" class="flex gap-4 items-center">
                 <div class="flex-1">
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
@@ -46,11 +46,21 @@
                                placeholder="Buscar por título, artista ou gravadora...">
                     </div>
                 </div>
+                <div class="flex-none">
+                     <select name="category_id" onchange="document.getElementById('filter-form').submit()" class="p-2.5 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todas as categorias</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ request('category_id') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
                 <button type="submit"
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
                     Buscar
                 </button>
-                @if(request('search'))
+                @if(request('search') || request('category_id'))
                     <a href="{{ route('admin.vinyls.index') }}"
                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200">
                         Limpar

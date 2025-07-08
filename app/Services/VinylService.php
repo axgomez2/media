@@ -169,88 +169,55 @@ class VinylService
 
         try {
             $artistIds = collect($artists)->map(function ($artistData) {
-                // Validar se tem os dados necessários
-                if (empty($artistData['name'])) {
+                if (empty($artistData['name']) || empty($artistData['id'])) {
                     return null;
                 }
 
-                // Normalizar nome do artista
                 $artistName = trim($artistData['name']);
                 $artistSlug = Str::slug($artistName);
-                $artistDiscogsId = $artistData['id'] ?? null;
+                $artistDiscogsId = $artistData['id'];
 
-                // Informações extras do artista
-                $artistFields = [
-                    'slug' => $artistSlug,
-                    'discogs_id' => $artistDiscogsId
-                ];
+                $artist = Artist::updateOrCreate(
+                    ['slug' => $artistSlug],
+                    [
+                        'name' => $artistName,
+                        'discogs_id' => $artistDiscogsId,
+                        'discogs_url' => str_replace('api.discogs.com', 'www.discogs.com', $artistData['resource_url'] ?? null),
+                    ]
+                );
 
-                // Adicionar URL do Discogs, se disponível
-                if (!empty($artistData['resource_url'])) {
-                    $artistFields['discogs_url'] = str_replace('api.', '', $artistData['resource_url']);
-                }
-
-                // Buscar ou criar o artista
-                $artist = Artist::firstOrNew(['discogs_id' => $artistDiscogsId]);
-                $artist->name = $artistName;
-
-                // Se é um novo artista ou não tem imagem ainda
-                if (!$artist->exists || empty($artist->images)) {
-                    // Obter detalhes do artista do Discogs
-                    $artistDetails = $this->discogsService->getArtistDetails($artistDiscogsId);
-
-                    if ($artistDetails) {
-                        // Adicionar perfil se disponível
-                        if (!empty($artistDetails['profile'])) {
-                            $artist->profile = $artistDetails['profile'];
+                if ($artist->wasRecentlyCreated || empty($artist->profile) || empty($artist->images)) {
+                    $details = $this->discogsService->getArtistDetails($artistDiscogsId);
+                    if ($details) {
+                        $updateData = [];
+                        if (!empty($details['profile'])) {
+                            $updateData['profile'] = $details['profile'];
                         }
-
-                        // Processar imagem do artista
-                        if (!empty($artistDetails['images']) && is_array($artistDetails['images'])) {
-                            $primaryImage = $artistDetails['images'][0];
-
-                            if (!empty($primaryImage['uri'])) {
-                                // Baixar e salvar a imagem
-                                $imageContent = $this->discogsService->fetchImage($primaryImage['uri']);
-
-                                if ($imageContent) {
-                                    $imagePath = $this->imageService->saveImageFromContents(
-                                        $imageContent,
-                                        $artistDiscogsId,
-                                        'jpg',
-                                        null,
-                                        'artist'
-                                    );
-
-                                    // Salvar no formato padronizado
-                                    $artist->images = [
-                                        [
-                                            'url' => $imagePath,
-                                            'type' => 'primary'
-                                        ]
-                                    ];
-                                }
+                        if (!empty($details['images'][0]['uri'])) {
+                            $imageContent = $this->discogsService->fetchImage($details['images'][0]['uri']);
+                            if ($imageContent) {
+                                $imagePath = $this->imageService->saveImageFromContents(
+                                    $imageContent,
+                                    $artistDiscogsId,
+                                    'jpg',
+                                    null,
+                                    'artist'
+                                );
+                                $updateData['images'] = [['url' => $imagePath, 'type' => 'primary']];
                             }
+                        }
+                        if (!empty($updateData)) {
+                            $artist->update($updateData);
                         }
                     }
                 }
 
-                // Mesclar e salvar todos os campos
-                foreach ($artistFields as $field => $value) {
-                    $artist->$field = $value;
-                }
-
-                $artist->save();
-
                 return $artist->id;
-            })->filter();
+            })->filter()->unique();
 
-            // Sincronizar artistas com o vinyl
             $vinylMaster->artists()->sync($artistIds);
-
         } catch (\Exception $e) {
-            Log::error('Erro ao sincronizar artistas: ' . $e->getMessage());
-            throw $e;
+            Log::error('Erro ao sincronizar artistas: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
         }
     }
 
@@ -310,102 +277,49 @@ class VinylService
      */
     public function associateRecordLabel(VinylMaster $vinylMaster, ?array $labelData): void
     {
-        try {
-            // Verificar se temos dados válidos da gravadora
-            if (!$labelData || empty($labelData['name'])) {
-                return;
-            }
+        if (empty($labelData) || empty($labelData['name'])) {
+            $vinylMaster->record_label_id = null;
+            $vinylMaster->save();
+            return;
+        }
 
-            // Normalizar o nome da gravadora
+        try {
             $labelName = trim($labelData['name']);
             $labelSlug = Str::slug($labelName);
             $labelDiscogsId = $labelData['id'] ?? null;
 
-            // Campos a serem atualizados/criados
-            $labelFields = ['slug' => $labelSlug];
-
-            // Adicionar ID do Discogs se disponível
-            if ($labelDiscogsId) {
-                $labelFields['discogs_id'] = $labelDiscogsId;
-            }
-
-            // Adicionar URL do Discogs, se disponível
-            if (!empty($labelData['resource_url'])) {
-                $labelFields['discogs_url'] = str_replace('api.', '', $labelData['resource_url']);
-            }
-
-            // Tentar obter mais detalhes da gravadora, se tivermos o ID
-            if ($labelDiscogsId) {
-                try {
-                    $labelDetails = $this->discogsService->getLabelDetails($labelDiscogsId);
-
-                    // Adicionar descrição se disponível
-                    if (!empty($labelDetails['profile'])) {
-                        $labelFields['description'] = $labelDetails['profile'];
-                    }
-
-                    // Buscar e salvar logo da gravadora
-                    if (!empty($labelDetails['images']) && is_array($labelDetails['images'])) {
-                        foreach ($labelDetails['images'] as $image) {
-                            if (isset($image['uri'])) {
-                                $imageContent = $this->discogsService->fetchImage($image['uri']);
-                                if ($imageContent) {
-                                    $imagePath = $this->imageService->saveImageFromContents(
-                                        $imageContent,
-                                        'label-' . $labelDiscogsId,
-                                        'jpg',
-                                        null,
-                                        'label'
-                                    );
-
-                                    if ($imagePath) {
-                                        $labelFields['logo'] = $imagePath;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } catch (\Exception $labelError) {
-                    Log::warning('Erro ao buscar detalhes da gravadora: ' . $labelError->getMessage());
-                    // Continuar mesmo se não conseguir obter detalhes extras
-                }
-            }
-
-            // Verificar se já temos thumbnail_url no $labelData
-            if (empty($labelFields['logo']) && !empty($labelData['thumbnail_url'])) {
-                try {
-                    $imageContent = $this->discogsService->fetchImage($labelData['thumbnail_url']);
-                    if ($imageContent) {
-                        $imagePath = $this->imageService->saveImageFromContents(
-                            $imageContent,
-                            'label-thumb-' . ($labelDiscogsId ?: md5($labelName)),
-                            'jpg',
-                            null,
-                            'label'
-                        );
-
-                        if ($imagePath) {
-                            $labelFields['logo'] = $imagePath;
-                        }
-                    }
-                } catch (\Exception $imgError) {
-                    Log::warning('Erro ao salvar thumbnail da gravadora: ' . $imgError->getMessage());
-                }
-            }
-
-            // Criar ou atualizar a gravadora
-            $label = RecordLabel::updateOrCreate(
-                ['name' => $labelName],
-                $labelFields
+            $recordLabel = RecordLabel::updateOrCreate(
+                ['slug' => $labelSlug],
+                [
+                    'name' => $labelName,
+                    'discogs_id' => $labelDiscogsId,
+                ]
             );
 
-            // Associar a gravadora ao disco
-            $vinylMaster->recordLabel()->associate($label);
+            if ($recordLabel->wasRecentlyCreated || empty($recordLabel->images)) {
+                if ($labelDiscogsId) {
+                    $details = $this->discogsService->getLabelDetails($labelDiscogsId);
+                    if ($details && !empty($details['images'][0]['uri'])) {
+                         $imageContent = $this->discogsService->fetchImage($details['images'][0]['uri']);
+                         if ($imageContent) {
+                            $imagePath = $this->imageService->saveImageFromContents(
+                                $imageContent,
+                                $labelDiscogsId,
+                                'jpg',
+                                'label-' . $labelDiscogsId,
+                                'label'
+                            );
+                            $recordLabel->update(['images' => [['url' => $imagePath, 'type' => 'primary']]]);
+                         }
+                    }
+                }
+            }
+
+            $vinylMaster->record_label_id = $recordLabel->id;
             $vinylMaster->save();
+
         } catch (\Exception $e) {
-            Log::error('Erro ao associar gravadora ao disco: ' . $e->getMessage());
-            // Não propagamos o erro para não interromper o fluxo principal
+            Log::error('Erro ao associar gravadora: ' . $e->getMessage());
         }
     }
 
@@ -550,37 +464,6 @@ class VinylService
      * @param VinylMaster $vinyl Registro do vinyl
      * @return int Contagem de itens
      */
-    public function getWishlistCount(VinylMaster $vinyl): int
-    {
-        return DB::table('wishlists')
-            ->where('product_id', $vinyl->id)
-            ->where('product_type', 'VinylMaster')
-            ->count();
-    }
-
-    /**
-     * Obtém contagem de itens na lista de procura para um vinyl
-     *
-     * @param VinylMaster $vinyl Registro do vinyl
-     * @return int Contagem de itens
-     */
-    public function getWantListCount(VinylMaster $vinyl): int
-    {
-        if (!$vinyl->vinylSec || !$vinyl->vinylSec->in_stock) {
-            return DB::table('wantlists')
-                ->where('product_id', $vinyl->id)
-                ->where('product_type', 'VinylMaster')
-                ->count();
-        }
-        return 0;
-    }
-
-    /**
-     * Obtém contagem de carrinhos incompletos contendo um vinyl
-     *
-     * @param VinylMaster $vinyl Registro do vinyl
-     * @return int Contagem de carrinhos
-     */
     public function getIncompleteCartsCount(VinylMaster $vinyl): int
     {
         return DB::table('carts')
@@ -673,3 +556,4 @@ class VinylService
         return $slug;
     }
 }
+

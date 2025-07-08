@@ -46,42 +46,37 @@ class VinylController extends Controller
     // Index and listing methods
     public function index(Request $request)
     {
-        $query = VinylMaster::with(['artists', 'styles', 'recordLabel', 'vinylSec']);
+        $query = VinylMaster::with(['artists', 'vinylSec', 'media']);
 
-        if ($request->has('search') && $request->search != '') {
-            $searchTerm = $request->search;
-            $query->where(function($q) use ($searchTerm) {
-                $q->where('title', 'like', '%' . $searchTerm . '%')
-                  ->orWhereHas('artists', function($q) use ($searchTerm) {
-                      $q->where('name', 'like', '%' . $searchTerm . '%');
-                  })
-                  ->orWhereHas('recordLabel', function($q) use ($searchTerm) {
-                      $q->where('name', 'like', '%' . $searchTerm . '%');
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhereHas('artists', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
                   });
             });
         }
 
-        $vinyls = $query->orderBy('created_at', 'desc')
-                        ->paginate(50)
-                        ->withQueryString();
+        if ($request->filled('category_id')) {
+            $categoryId = $request->input('category_id');
+            $query->whereHas('categories', function ($q) use ($categoryId) {
+                $q->where('cat_style_shop.id', $categoryId);
+            });
+        }
 
-        return view('admin.vinyls.index', compact('vinyls'));
+        $vinyls = $query->latest()->paginate(50)->withQueryString();
+        $categories = CatStyleShop::has('vinylMasters')->orderBy('name')->get();
+
+        return view('admin.vinyls.index', compact('vinyls', 'categories'));
     }
 
     public function show($id)
     {
-        $vinyl = VinylMaster::with([
-            'artists', 'styles', 'recordLabel', 'tracks', 'vinylSec'
-        ])->findOrFail($id);
-
-        $cardClicks = $vinyl->card_clicks ?? 0;
-        $wishlistCount = $this->getWishlistCount($vinyl);
-        $wantListCount = $this->getWantListCount($vinyl);
+        $vinyl = VinylMaster::with(['artists', 'media', 'vinylSec', 'tracks', 'recordLabel', 'styles', 'categories'])->findOrFail($id);
         $incompleteCartsCount = $this->getIncompleteCartsCount($vinyl);
 
-        return view('admin.vinyls.show', compact(
-            'vinyl', 'cardClicks', 'wishlistCount', 'wantListCount', 'incompleteCartsCount'
-        ));
+        return view('admin.vinyls.show', compact('vinyl', 'incompleteCartsCount'));
     }
 
     // Create and store methods
@@ -239,9 +234,9 @@ class VinylController extends Controller
             'description'         => 'nullable|string',
             'weight_id'           => 'required|exists:weights,id',
             'dimension_id'        => 'required|exists:dimensions,id',
-            'quantity'            => 'required|integer|min:0',
+            'stock'               => 'required|integer|min:0',
             'price'               => 'required|numeric|min:0',
-            'buy_price'           => 'nullable|numeric|min:0',
+
             'promotional_price'   => 'nullable|numeric|min:0',
             'is_promotional'      => 'boolean',
             'in_stock'            => 'boolean',
@@ -259,9 +254,9 @@ class VinylController extends Controller
                 [
                     'weight_id'           => $validatedData['weight_id'],
                     'dimension_id'        => $validatedData['dimension_id'],
-                    'quantity'            => $validatedData['quantity'],
+                    'stock'               => $validatedData['stock'],
                     'price'               => $validatedData['price'],
-                    'buy_price'           => $validatedData['buy_price'],
+
                     'promotional_price'   => $validatedData['promotional_price'],
                     'is_promotional'      => $validatedData['is_promotional'] ?? false,
                     'in_stock'            => $validatedData['in_stock'] ?? false,
@@ -540,22 +535,23 @@ class VinylController extends Controller
         return $product;
     }
 
-    private function getWishlistCount($vinyl)
-    {
-        return Wishlist::where('product_id', $vinyl->id)
-            ->where('product_type', 'VinylMaster')
-            ->count();
-    }
-
     private function getWantListCount($vinyl)
     {
-        // Verificar se vinylSec existe antes de acessar suas propriedades
-        if ($vinyl->vinylSec && !$vinyl->vinylSec->in_stock) {
-            return Wantlist::where('product_id', $vinyl->id)
-                ->where('product_type', 'VinylMaster')
+        if (!$vinyl->vinylSec || !$vinyl->vinylSec->in_stock) {
+            return DB::table('wantlists')
+                ->where('productable_id', $vinyl->id)
+                ->where('productable_type', \App\Models\VinylMaster::class)
                 ->count();
         }
         return 0;
+    }
+
+    private function getWishlistCount($vinyl)
+    {
+        return DB::table('wishlists')
+            ->where('productable_id', $vinyl->id)
+            ->where('productable_type', \App\Models\VinylMaster::class)
+            ->count();
     }
 
     private function getIncompleteCartsCount($vinyl)
@@ -625,15 +621,10 @@ class VinylController extends Controller
             'buy_price'            => 'nullable|numeric|min:0',
             'promotional_price'    => 'nullable|numeric|min:0',
             'is_promotional'       => 'required|boolean',
-            'is_presale'           => 'required|boolean',
-            'presale_arrival_date' => 'nullable|date|required_if:is_presale,true',
-            'in_stock'             => 'required|boolean',
-            'track_youtube_urls'   => 'nullable|array',
-            'track_youtube_urls.*' => 'nullable|url',
-            'tracks'               => 'nullable|array',
-            'tracks.*.name'        => 'required|string',
-            'tracks.*.duration'    => 'nullable|string',
-            'category_ids'         => 'required|array',
+            'is_presale'           => 'boolean',
+            'presale_arrival_date' => 'nullable|date',
+            'tracks.*.youtube_url' => 'nullable|url',
+            'category_ids'         => 'nullable|array',
             'category_ids.*'       => 'exists:cat_style_shop,id',
         ]);
 
@@ -692,18 +683,19 @@ class VinylController extends Controller
                 $vinylSec = VinylSec::create($vinylSecData);
             }
 
-            // Sincroniza as categorias - categorias pertencem ao VinylMaster, não ao VinylSec
-            if (isset($validatedData['category_ids'])) {
-                $vinylMaster->categories()->sync($validatedData['category_ids']);
+            // Sincroniza as categorias
+            if ($request->has('category_ids')) {
+                $vinylMaster->categories()->sync($request->input('category_ids'));
             }
 
             // Atualiza as faixas existentes
-            if (isset($validatedData['tracks'])) {
-                foreach ($validatedData['tracks'] as $trackId => $trackData) {
+            if ($request->has('tracks')) {
+                foreach ($request->input('tracks') as $trackId => $trackData) {
                     $track = $vinylMaster->tracks->find($trackId);
                     if ($track) {
-                        $trackData['youtube_url'] = $validatedData['track_youtube_urls'][$trackId] ?? null;
-                        $track->update($trackData);
+                        $track->update([
+                            'youtube_url' => $trackData['youtube_url']
+                        ]);
                     }
                 }
             }
@@ -804,3 +796,4 @@ class VinylController extends Controller
         }
     }
 }
+

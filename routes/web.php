@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\PosSalesController;
 use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\YouTubeController;
 use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\MarketAnalysisController;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -132,11 +133,15 @@ Route::prefix('relatorios')->group(function () {
 
     // Relatórios de carrinhos
     Route::get('/carrinhos', [ReportsController::class, 'carts'])->name('admin.reports.carts');
-    Route::get('/carrinhos/{vinylSecId}', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
+    Route::get('/carrinhos/{productId}', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
+    
+    // Carrinhos abertos
+    Route::get('/carrinhos-abertos', [ReportsController::class, 'openCarts'])->name('admin.reports.open_carts');
+    Route::get('/carrinhos-abertos/{cartId}/items', [ReportsController::class, 'getCartItems'])->name('admin.reports.cart_items');
 
     // Relatórios de wishlist
     Route::get('/wishlist', [ReportsController::class, 'wishlists'])->name('admin.reports.wishlists');
-    Route::get('/wishlist/{vinylMasterId}', [ReportsController::class, 'wishlistDetails'])->name('admin.reports.wishlist_details');
+    Route::get('/wishlist/{productId}', [ReportsController::class, 'wishlistDetails'])->name('admin.reports.wishlist_details');
 
     // Relatórios de wantlist
     Route::get('/wantlist', [ReportsController::class, 'wantlists'])->name('admin.reports.wantlists');
@@ -212,21 +217,21 @@ Route::resource('categories', CatStyleShopController::class, ['as' => 'admin'])-
 Route::resource('styles', CatStyleShopController::class, ['as' => 'admin'])->parameters(['styles' => 'style']);
 Route::resource('shops', CatStyleShopController::class, ['as' => 'admin'])->parameters(['shops' => 'shop']);
 
-// Equipamentos
-Route::resource('equipment', EquipmentController::class, ['as' => 'admin']);
-Route::get('equipment/{equipment}/images', [EquipmentController::class, 'showImages'])->name('admin.equipment.images');
-Route::post('equipment/{equipment}/images', [EquipmentController::class, 'storeImages'])->name('admin.equipment.images.store');
+// Equipamentos (comentado - controller não existe)
+// Route::resource('equipment', EquipmentController::class, ['as' => 'admin']);
+// Route::get('equipment/{equipment}/images', [EquipmentController::class, 'showImages'])->name('admin.equipment.images');
+// Route::post('equipment/{equipment}/images', [EquipmentController::class, 'storeImages'])->name('admin.equipment.images.store');
 
 // Suppliers (Fornecedores) - Usando prefixo 'admin' para evitar conflitos
 // Removendo este resource já que temos uma definição manual para fornecedores acima
 // Route::resource('suppliers', SupplierController::class);
 
-// Rotas de API para funcionalidades de IA
-Route::prefix('api')->group(function () {
-    // Geração de descrição e tradução com IA
-    Route::post('/vinyls/generate-description', [VinylAIController::class, 'generateDescription']);
-    Route::post('/vinyls/translate-description', [VinylAIController::class, 'translateDescription']);
-});
+// Rotas de API para funcionalidades de IA (comentado - controller não existe)
+// Route::prefix('api')->group(function () {
+//     // Geração de descrição e tradução com IA
+//     Route::post('/vinyls/generate-description', [VinylAIController::class, 'generateDescription']);
+//     Route::post('/vinyls/translate-description', [VinylAIController::class, 'translateDescription']);
+// });
 
 // Media e Cover Status - Ambos já estão definidos acima com rotas individuais
 // Removido Route::resource para evitar conflitos de nomes de rotas
@@ -241,6 +246,25 @@ Route::prefix('api')->group(function () {
 //     Route::get('/store', [DeveloperController::class, 'showStoreInfo'])->name('admin.developer.store');
 //     Route::post('/store', [DeveloperController::class, 'updateStoreInfo'])->name('admin.developer.store.update');
 // });
+
+// Análise de Mercado - Discogs
+Route::prefix('analise-mercado')->group(function () {
+    Route::get('/', [MarketAnalysisController::class, 'index'])->name('admin.market-analysis.index');
+    Route::get('/graficos', [MarketAnalysisController::class, 'charts'])->name('admin.market-analysis.charts');
+    Route::get('/historico', [MarketAnalysisController::class, 'history'])->name('admin.market-analysis.history');
+    Route::post('/forcar-analise', [MarketAnalysisController::class, 'forceAnalysis'])->name('admin.market-analysis.force');
+    Route::get('/exportar', [MarketAnalysisController::class, 'exportCsv'])->name('admin.market-analysis.export');
+    Route::post('/auto-collect', [MarketAnalysisController::class, 'autoCollect'])->name('admin.market-analysis.auto-collect');
+    
+    // Rotas de CRUD
+    Route::post('/store', [MarketAnalysisController::class, 'store'])->name('admin.market-analysis.store');
+    Route::put('/{marketAnalysis}', [MarketAnalysisController::class, 'update'])->name('admin.market-analysis.update');
+    Route::delete('/{marketAnalysis}', [MarketAnalysisController::class, 'destroy'])->name('admin.market-analysis.destroy');
+
+    // APIs para dados dinâmicos
+    Route::get('/api/graficos', [MarketAnalysisController::class, 'apiChartData'])->name('admin.market-analysis.api.charts');
+    Route::get('/api/stats', [MarketAnalysisController::class, 'apiStats'])->name('admin.market-analysis.api.stats');
+});
 
 });
 
@@ -260,3 +284,16 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 });
 
 Route::get('/media-externa/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('media.show');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/vinyl/search-discogs', [VinylController::class, 'searchDiscogs'])->name('vinyl.searchDiscogs');
+    Route::get('/vinyl/get-discogs-release/{releaseId}', [VinylController::class, 'getDiscogsRelease'])->name('vinyl.getDiscogsRelease');
+
+    // Redirecionar as rotas antigas para as novas
+    Route::post('/market-analysis/auto-collect', function() {
+        return redirect()->route('admin.market-analysis.auto-collect');
+    });
+    Route::get('/market-analysis', function() {
+        return redirect()->route('admin.market-analysis.index');
+    });
+});

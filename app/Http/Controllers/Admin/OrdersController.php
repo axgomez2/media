@@ -26,19 +26,12 @@ class OrdersController extends Controller
         $search = $request->input('search');
         
         // Consulta base
-        $query = Order::query()->with(['user', 'payment']);
+        $query = Order::query()->with(['user', 'items.product']);
         
         // Aplicar filtros se fornecidos
         if ($status) {
-            // Converter string para Enum OrderStatus
-            try {
-                // Tentar criar um Enum a partir do valor da string
-                $statusEnum = OrderStatus::from($status);
-                $query->where('status', $statusEnum);
-            } catch (\ValueError $e) {
-                // Se o valor não for válido, ignorar o filtro
-                Log::warning("Valor de status inválido: {$status}");
-            }
+            // Usar status como string diretamente
+            $query->where('status', $status);
         }
         
         if ($date) {
@@ -67,13 +60,13 @@ class OrdersController extends Controller
                        ->paginate(15)
                        ->withQueryString();
         
-        // Obter contadores para dashboard usando objetos enum
+        // Obter contadores para dashboard usando strings
         $counters = [
             'total' => Order::count(),
-            'pending' => Order::where('status', OrderStatus::PENDING)->count(),
-            'payment_approved' => Order::where('status', OrderStatus::PAYMENT_APPROVED)->count(),
-            'delivered' => Order::where('status', OrderStatus::DELIVERED)->count(),
-            'canceled' => Order::where('status', OrderStatus::CANCELED)->count(),
+            'pending' => Order::where('status', 'pending')->count(),
+            'payment_approved' => Order::where('status', 'payment_approved')->count(),
+            'delivered' => Order::where('status', 'delivered')->count(),
+            'canceled' => Order::where('status', 'canceled')->count(),
         ];
         
         return view('admin.orders.index', compact('orders', 'counters', 'status', 'date', 'search'));
@@ -84,7 +77,7 @@ class OrdersController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['items.vinylMaster.artists', 'user', 'address', 'payment']);
+        $order->load(['items.product', 'user', 'payment', 'coupons', 'shippingLabel']);
         return view('admin.orders.show', compact('order'));
     }
     
@@ -176,7 +169,7 @@ class OrdersController extends Controller
      */
     public function generateInvoice(Order $order)
     {
-        $order->load(['items.vinylMaster.artists', 'user', 'address', 'payment']);
+        $order->load(['items.product', 'user', 'payment', 'coupons']);
         
         // Renderizar a fatura como HTML para impressão
         return view('admin.orders.invoice', compact('order'));
@@ -340,7 +333,7 @@ class OrdersController extends Controller
         $items = [];
         
         foreach ($order->items as $item) {
-            $weight = $item->vinylMaster->weight ?? 0.3; // Peso padrão se não estiver definido
+            $weight = $item->product->weight ?? 0.3; // Peso padrão se não estiver definido
             $totalWeight += $weight * $item->quantity;
             
             $items[] = [

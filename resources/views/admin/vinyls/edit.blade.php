@@ -1,7 +1,7 @@
 <x-admin-layout title="Editar Disco">
     <div class="p-4" x-data="{ showDiscogsModal: false, showUploadModal: false }">
         <div class="flex justify-between items-center mb-6">
-            <div>
+                    <div>
                 <h1 class="text-2xl font-semibold text-gray-900 sm:text-3xl">Editar Disco</h1>
                 <p class="text-sm text-gray-500 mt-1">Gerencie os detalhes do disco: {{ $vinyl->title }}</p>
             </div>
@@ -21,10 +21,10 @@
                     <h2 class="text-xl font-semibold mb-4 text-gray-900 border-b pb-3">Informações Principais</h2>
 
                     <!-- Descrição -->
-                    <div>
-                        <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Descrição</label>
+                <div>
+                    <label for="description" class="block mb-2 text-sm font-medium text-gray-900">Descrição</label>
                         <textarea id="description" name="description" rows="6" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500">{{ old('description', $vinyl->description) }}</textarea>
-                    </div>
+                </div>
                 </div>
 
                 <!-- Card de Categorias -->
@@ -129,14 +129,14 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <label for="dimension_id" class="block mb-2 text-sm font-medium text-gray-900">Dimensão</label>
-                            <select id="dimension_id" name="dimension_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
-                                @foreach($dimensions as $dimension)
+                <div>
+                    <label for="dimension_id" class="block mb-2 text-sm font-medium text-gray-900">Dimensão</label>
+                    <select id="dimension_id" name="dimension_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required>
+                        @foreach($dimensions as $dimension)
                                     <option value="{{ $dimension->id }}" {{ (old('dimension_id', $vinyl->vinylSec->dimension_id ?? '') == $dimension->id) ? 'selected' : '' }}>{{ $dimension->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+                        @endforeach
+                    </select>
+                </div>
                     </div>
                 </div>
 
@@ -178,7 +178,7 @@
                     </div>
                 </div>
             </div>
-        </div>
+                </div>
 
         <!-- Modal Upload Manual -->
         <div x-show="showUploadModal" class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true" style="display: none;">
@@ -205,6 +205,6 @@
                     </form>
                 </div>
             </div>
-        </div>
     </div>
+</div>
 </x-admin-layout>

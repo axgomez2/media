@@ -446,4 +446,105 @@ class DiscogsService
             ];
         }
     }
+
+    /**
+     * Obtém dados de análise de mercado do Discogs
+     * Usa web scraping para obter o número real de listings (anúncios), não apenas releases
+     *
+     * @param string|null $country País para filtrar (opcional)
+     * @return int|null Número de listings ou null em caso de erro
+     */
+    public function getMarketAnalysisData(?string $country = null): ?int
+    {
+        try {
+            // URL base para listagens de vinil
+            $url = 'https://www.discogs.com/sell/list?format=Vinyl';
+
+            // Adicionar filtro de país se especificado
+            if ($country) {
+                $url .= '&ships_from=' . urlencode($country);
+            }
+
+            Log::info('Buscando dados de mercado do Discogs', [
+                'url' => $url,
+                'country' => $country
+            ]);
+
+            // Fazer requisição simulando um navegador real
+            $response = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language' => 'pt-BR,pt;q=0.9,en;q=0.8',
+                'Accept-Encoding' => 'gzip, deflate, br',
+                'Connection' => 'keep-alive',
+                'Upgrade-Insecure-Requests' => '1',
+                'Cache-Control' => 'max-age=0'
+            ])
+            ->timeout(30)
+            ->get($url);
+
+            if (!$response->successful()) {
+                Log::error('Falha ao acessar página do Discogs', [
+                    'status' => $response->status(),
+                    'country' => $country
+                ]);
+                return null;
+            }
+
+            $html = $response->body();
+
+            // Procurar pelo padrão que mostra o total de listings
+            // O Discogs mostra algo como "1-25 of 50,123,456" na paginação
+            $patterns = [
+                // Padrão principal: <strong class="pagination_total">1-25 of 50,123,456</strong>
+                '/<strong[^>]*class=["\']pagination_total["\'][^>]*>.*?of\s+([\d,]+)<\/strong>/i',
+                // Padrão alternativo: pode estar em um span
+                '/<span[^>]*class=["\']pagination_total["\'][^>]*>.*?of\s+([\d,]+)<\/span>/i',
+                // Outro padrão possível
+                '/of\s+([\d,]+)\s+<\/strong>/i',
+                // Padrão mais genérico
+                '/\bof\s+([\d,]+)\s*(?:<\/|results|items|listings)/i'
+            ];
+
+            foreach ($patterns as $pattern) {
+                if (preg_match($pattern, $html, $matches)) {
+                    $totalStr = $matches[1];
+                    $total = (int) str_replace(',', '', $totalStr);
+
+                    Log::info('Total de listings encontrado', [
+                        'country' => $country,
+                        'total' => $total,
+                        'pattern' => $pattern
+                    ]);
+
+                    return $total;
+                }
+            }
+
+            // Se não encontrou com os padrões acima, tentar encontrar o elemento de paginação de outra forma
+            // Procurar por data attributes ou outras estruturas
+            if (preg_match('/data-pagination-total=["\'](\d+)["\']/', $html, $matches)) {
+                $total = (int) $matches[1];
+                Log::info('Total encontrado via data attribute', [
+                    'country' => $country,
+                    'total' => $total
+                ]);
+                return $total;
+            }
+
+            Log::warning('Não foi possível extrair o total de listings do HTML', [
+                'country' => $country,
+                'html_sample' => substr($html, 0, 1000) // Log dos primeiros 1000 caracteres para debug
+            ]);
+
+            return null;
+
+        } catch (\Exception $e) {
+            Log::error('Erro ao buscar dados de mercado do Discogs', [
+                'country' => $country,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
 }

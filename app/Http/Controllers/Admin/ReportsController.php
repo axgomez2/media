@@ -12,6 +12,7 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Wishlist;
 use App\Models\Wantlist;
+use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -91,35 +92,34 @@ class ReportsController extends Controller
      */
     public function carts()
     {
-        // Buscar todos os discos que estão em carrinhos ativos
+        // Buscar todos os produtos que estão em carrinhos ativos
         $cartItems = DB::table('cart_items')
             ->join('carts', 'cart_items.cart_id', '=', 'carts.id')
-            ->join('vinyl_masters', 'cart_items.vinyl_master_id', '=', 'vinyl_masters.id')
+            ->join('products', 'cart_items.product_id', '=', 'products.id')
             ->leftJoin('users', 'carts.user_id', '=', 'users.id')
             ->select(
-                'vinyl_masters.id as master_id',
-                'vinyl_masters.title',
+                'products.id as product_id',
+                'products.name as title',
                 DB::raw('COUNT(DISTINCT carts.id) as cart_count'),
-                DB::raw('SUM(cart_items.quantity) as total_quantity')
+                DB::raw('SUM(1) as total_quantity')
             )
             ->where('carts.status', 'active')
-            ->groupBy('vinyl_masters.id', 'vinyl_masters.title')
+            ->groupBy('products.id', 'products.name')
             ->orderByDesc('total_quantity')
             ->get();
 
-        return view('admin.reports.carts', compact('cartItems'));
+        return view('admin.reports.products_in_carts', compact('cartItems'));
     }
     
     /**
-     * Exibe detalhes de um disco específico em carrinhos
+     * Exibe detalhes de um produto específico em carrinhos
      */
-    public function cartDetails($vinylMasterId)
+    public function cartDetails($productId)
     {
-        // Buscar informações do disco
-        $vinyl = VinylMaster::with('artists')
-            ->findOrFail($vinylMasterId);
+        // Buscar informações do produto
+        $product = Product::findOrFail($productId);
             
-        // Buscar usuários que têm este disco no carrinho
+        // Buscar usuários que têm este produto no carrinho
         $cartUsers = DB::table('cart_items')
             ->join('carts', 'cart_items.cart_id', '=', 'carts.id')
             ->leftJoin('users', 'carts.user_id', '=', 'users.id')
@@ -127,32 +127,32 @@ class ReportsController extends Controller
                 'users.id as user_id',
                 'users.name',
                 'users.email',
-                'cart_items.quantity',
+                DB::raw('1 as quantity'), // Assumindo que quantidade é sempre 1
                 'carts.created_at',
                 'carts.updated_at'
             )
-            ->where('cart_items.vinyl_master_id', $vinylMasterId)
+            ->where('cart_items.product_id', $productId)
             ->where('carts.status', 'active')
             ->orderBy('carts.updated_at', 'desc')
             ->get();
 
-        return view('admin.reports.cart_details', compact('vinyl', 'cartUsers'));
+        return view('admin.reports.cart_details', compact('product', 'cartUsers'));
     }
     
     /**
-     * Exibe relatório de discos em wishlists
+     * Exibe relatório de produtos em wishlists
      */
     public function wishlists()
     {
-        // Buscar todos os discos que estão em wishlists
+        // Buscar todos os produtos que estão em wishlists
         $wishlistItems = DB::table('wishlists')
-            ->join('vinyl_masters', 'wishlists.vinyl_master_id', '=', 'vinyl_masters.id')
+            ->join('products', 'wishlists.product_id', '=', 'products.id')
             ->select(
-                'vinyl_masters.id as master_id',
-                'vinyl_masters.title',
+                'products.id as product_id',
+                'products.name as title',
                 DB::raw('COUNT(DISTINCT wishlists.user_id) as user_count')
             )
-            ->groupBy('vinyl_masters.id', 'vinyl_masters.title')
+            ->groupBy('products.id', 'products.name')
             ->orderByDesc('user_count')
             ->get();
 
@@ -160,15 +160,14 @@ class ReportsController extends Controller
     }
     
     /**
-     * Exibe detalhes de um disco específico em wishlists
+     * Exibe detalhes de um produto específico em wishlists
      */
-    public function wishlistDetails($vinylMasterId)
+    public function wishlistDetails($productId)
     {
-        // Buscar informações do disco
-        $vinyl = VinylMaster::with('artists')
-            ->findOrFail($vinylMasterId);
+        // Buscar informações do produto
+        $product = Product::findOrFail($productId);
             
-        // Buscar usuários que têm este disco na wishlist
+        // Buscar usuários que têm este produto na wishlist
         $wishlistUsers = DB::table('wishlists')
             ->join('users', 'wishlists.user_id', '=', 'users.id')
             ->select(
@@ -177,11 +176,11 @@ class ReportsController extends Controller
                 'users.email',
                 'wishlists.created_at'
             )
-            ->where('wishlists.vinyl_master_id', $vinylMasterId)
+            ->where('wishlists.product_id', $productId)
             ->orderBy('wishlists.created_at', 'desc')
             ->get();
 
-        return view('admin.reports.wishlist_details', compact('vinyl', 'wishlistUsers'));
+        return view('admin.reports.wishlist_details', compact('product', 'wishlistUsers'));
     }
     
     /**
@@ -277,5 +276,63 @@ class ReportsController extends Controller
         ];
 
         return view('admin.reports.view_details', compact('vinyl', 'views', 'viewStats'));
+    }
+    
+    /**
+     * Exibe todos os carrinhos ativos no sistema
+     */
+    public function openCarts()
+    {
+        // Buscar todos os carrinhos ativos com seus respectivos usuários
+        $carts = Cart::with(['user'])
+            ->where('status', 'active')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+            
+        // Para cada carrinho, buscar a quantidade de itens e valor total
+        foreach ($carts as $cart) {
+            $cart->items_count = CartItem::where('cart_id', $cart->id)->count();
+            $cart->total_value = 0; // Inicializa o valor total
+            
+            // Itens do carrinho com produtos associados para calcular valor total
+            $cartItems = CartItem::where('cart_id', $cart->id)
+                ->with('product')
+                ->get();
+                
+            foreach ($cartItems as $item) {
+                if ($item->product) {
+                    $cart->total_value += $item->product->price;
+                }
+            }
+        }
+
+        return view('admin.reports.carts', compact('carts'));
+    }
+    
+    /**
+     * Retorna os itens de um carrinho específico para exibição em modal
+     */
+    public function getCartItems($cartId)
+    {
+        $cart = Cart::with('user')->findOrFail($cartId);
+        
+        $items = CartItem::with('product')
+            ->where('cart_id', $cartId)
+            ->get();
+            
+        $totalValue = 0;
+        foreach ($items as $item) {
+            if ($item->product) {
+                $totalValue += $item->product->price;
+            }
+        }
+        
+        return response()->json([
+            'success' => true,
+            'cart' => $cart,
+            'items' => $items,
+            'totalValue' => $totalValue,
+            'html' => view('admin.reports.partials.cart_items_modal', compact('cart', 'items', 'totalValue'))->render()
+        ]);
     }
 }

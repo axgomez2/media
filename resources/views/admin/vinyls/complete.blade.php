@@ -334,17 +334,17 @@
                                 <td class="px-6 py-4">{{ $track->position }}</td>
                                 <td class="px-6 py-4 font-medium text-gray-900">{{ $track->name }}</td>
                                 <td class="px-6 py-4">{{ $track->duration }}</td>
-                                <td class="px-6 py-4">
+                                    <td class="px-6 py-4">
                                      <input type="text" name="tracks[{{ $track->id }}][youtube_url]" value="{{ old('tracks.'.$track->id.'.youtube_url', $track->youtube_url) }}" class="youtube-url-input bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                                </td>
-                                <td class="px-6 py-4">
-                                     <div class="flex items-center justify-center space-x-2">
+                                    </td>
+                                    <td class="px-6 py-4">
+                                        <div class="flex items-center justify-center space-x-2">
                                          <button type="button" @click.prevent="searchYouTube('{{ $track->name }}', $event.target.closest('tr').querySelector('.youtube-url-input'))" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-4 py-2" title="Buscar no YouTube">
-                                             <i class="fab fa-youtube"></i>
-                                         </button>
-                                    </div>
-                                </td>
-                            </tr>
+                                                <i class="fab fa-youtube"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>

@@ -46,13 +46,16 @@ class VinylController extends Controller
     // Index and listing methods
     public function index(Request $request)
     {
-        $query = VinylMaster::with(['artists', 'vinylSec', 'media']);
+        $query = VinylMaster::with(['artists', 'vinylSec', 'media', 'recordLabel']);
 
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'like', "%{$search}%")
                   ->orWhereHas('artists', function ($q) use ($search) {
+                      $q->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('recordLabel', function ($q) use ($search) {
                       $q->where('name', 'like', "%{$search}%");
                   });
             });
@@ -66,6 +69,7 @@ class VinylController extends Controller
         }
 
         $vinyls = $query->latest()->paginate(50)->withQueryString();
+
         $categories = CatStyleShop::has('vinylMasters')->orderBy('name')->get();
 
         return view('admin.vinyls.index', compact('vinyls', 'categories'));

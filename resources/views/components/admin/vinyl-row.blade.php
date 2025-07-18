@@ -1,7 +1,10 @@
 <tr class="bg-white border-b hover:bg-gray-50">
     <td class="p-4 w-32">
         <img class="w-16 h-16 rounded-lg object-cover"
-             src="{{ $vinyl->cover_image ? route('media.show', ['path' => $vinyl->cover_image]) : asset('images/borken.png') }}">
+             src="{{ $vinyl->cover_image ? route('media.show', ['path' => $vinyl->cover_image]) : asset('images/borken.png') }}"
+             loading="lazy"
+             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'; this.onerror=null;"
+             alt="Capa do disco">
     </td>
     <td class="px-2 py-4">
         <div class="font-semibold text-gray-900">

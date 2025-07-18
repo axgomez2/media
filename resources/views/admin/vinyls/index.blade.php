@@ -106,7 +106,7 @@
                             <th scope="col" class="px-6 py-3">Ações</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="vinyl-table-body">
                         @foreach($vinyls as $vinyl)
                             <x-admin.vinyl-row :vinyl="$vinyl" />
                         @endforeach
@@ -125,4 +125,87 @@
 </x-admin-layout>
 
 
-{{-- JavaScript toast functions removed since we're using Laravel flash messages now --}}
+{{-- JavaScript para otimizar carregamento de imagens --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar lazy loading e fallback para imagens
+    const images = document.querySelectorAll('#vinyl-table-body img');
+    
+    images.forEach(function(img) {
+        // Adicionar loading="lazy" se não estiver presente
+        if (!img.hasAttribute('loading')) {
+            img.setAttribute('loading', 'lazy');
+        }
+        
+        // Adicionar timeout para imagens que demoram muito para carregar
+        const timeout = setTimeout(function() {
+            if (!img.complete) {
+                console.warn('Imagem demorou muito para carregar:', img.src);
+                img.onerror(); // Força o fallback
+            }
+        }, 5000); // 5 segundos timeout
+        
+        // Limpar timeout quando a imagem carregar
+        img.addEventListener('load', function() {
+            clearTimeout(timeout);
+        });
+        
+        // Melhorar o fallback de erro
+        img.addEventListener('error', function() {
+            clearTimeout(timeout);
+            if (!this.dataset.fallbackApplied) {
+                this.dataset.fallbackApplied = 'true';
+                this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                this.alt = 'Imagem não disponível';
+                this.title = 'Imagem não pôde ser carregada';
+            }
+        });
+    });
+    
+    // Adicionar indicador de carregamento para a tabela
+    const tableBody = document.getElementById('vinyl-table-body');
+    if (tableBody && tableBody.children.length > 20) {
+        // Para tabelas grandes, mostrar indicador de progresso
+        let loadedImages = 0;
+        const totalImages = images.length;
+        
+        if (totalImages > 0) {
+            const progressBar = document.createElement('div');
+            progressBar.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            progressBar.innerHTML = `<div class="flex items-center gap-2">
+                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>Carregando imagens... <span id="progress-count">0</span>/${totalImages}</span>
+            </div>`;
+            document.body.appendChild(progressBar);
+            
+            images.forEach(function(img) {
+                function updateProgress() {
+                    loadedImages++;
+                    const progressCount = document.getElementById('progress-count');
+                    if (progressCount) {
+                        progressCount.textContent = loadedImages;
+                    }
+                    
+                    if (loadedImages >= totalImages) {
+                        setTimeout(function() {
+                            if (progressBar.parentNode) {
+                                progressBar.remove();
+                            }
+                        }, 1000);
+                    }
+                }
+                
+                if (img.complete) {
+                    updateProgress();
+                } else {
+                    img.addEventListener('load', updateProgress);
+                    img.addEventListener('error', updateProgress);
+                }
+            });
+        }
+    }
+});
+</script>

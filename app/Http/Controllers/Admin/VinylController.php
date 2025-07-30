@@ -68,6 +68,41 @@ class VinylController extends Controller
             });
         }
 
+        // Filtro de disponibilidade de estoque
+        if ($request->filled('stock_status')) {
+            $stockStatus = $request->input('stock_status');
+
+            switch ($stockStatus) {
+                case 'available':
+                    // Discos disponíveis: in_stock = 1 E stock > 0
+                    $query->whereHas('vinylSec', function ($q) {
+                        $q->where('in_stock', 1)
+                          ->where('stock', '>', 0);
+                    });
+                    break;
+
+                case 'unavailable':
+                    // Discos indisponíveis: in_stock = 0 OU stock = 0 OU sem vinylSec
+                    $query->where(function ($q) {
+                        $q->whereDoesntHave('vinylSec')
+                          ->orWhereHas('vinylSec', function ($subQ) {
+                              $subQ->where('in_stock', 0)
+                                   ->orWhere('stock', 0);
+                          });
+                    });
+                    break;
+
+                case 'low_stock':
+                    // Estoque baixo: in_stock = 1 E stock <= 5 E stock > 0
+                    $query->whereHas('vinylSec', function ($q) {
+                        $q->where('in_stock', 1)
+                          ->where('stock', '>', 0)
+                          ->where('stock', '<=', 5);
+                    });
+                    break;
+            }
+        }
+
         $vinyls = $query->latest()->paginate(50)->withQueryString();
 
         $categories = CatStyleShop::has('vinylMasters')->orderBy('name')->get();

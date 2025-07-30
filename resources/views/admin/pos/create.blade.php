@@ -24,7 +24,7 @@
                     <!-- Dados do Cliente -->
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <h3 class="text-lg font-medium text-gray-800 mb-4">Dados do Cliente</h3>
-                        
+
                         <div class="mb-4">
                             <div class="flex items-center mb-2">
                                 <input type="radio" id="clienteAnon" name="client_type" value="anonymous" checked class="mr-2">
@@ -35,12 +35,12 @@
                                 <label for="clienteReg" class="text-sm font-medium text-gray-700">Cliente Cadastrado</label>
                             </div>
                         </div>
-                        
+
                         <div id="anonClientContainer" class="mb-4">
                             <label for="customer_name" class="block text-sm font-medium text-gray-700 mb-1">Nome do Cliente (opcional)</label>
                             <input type="text" id="customer_name" name="customer_name" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
                         </div>
-                        
+
                         <div id="regClientContainer" class="mb-4 hidden">
                             <label for="user_search" class="block text-sm font-medium text-gray-700 mb-1">Buscar Cliente Cadastrado</label>
                             <div class="relative">
@@ -54,11 +54,11 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Informações de Pagamento -->
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <h3 class="text-lg font-medium text-gray-800 mb-4">Pagamento</h3>
-                        
+
                         <div class="mb-4">
                             <label for="payment_method" class="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
                             <select id="payment_method" name="payment_method" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
@@ -69,17 +69,17 @@
                                 <option value="transfer">Transferência Bancária</option>
                             </select>
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="shipping" class="block text-sm font-medium text-gray-700 mb-1">Frete (R$)</label>
                             <input type="number" id="shipping" name="shipping" value="0" min="0" step="0.01" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="discount" class="block text-sm font-medium text-gray-700 mb-1">Desconto (R$)</label>
                             <input type="number" id="discount" name="discount" value="0" min="0" step="0.01" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50">
                         </div>
-                        
+
                         <div class="mb-4">
                             <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
                             <textarea id="notes" name="notes" rows="2" class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"></textarea>
@@ -90,7 +90,7 @@
                 <!-- Busca de Produtos -->
                 <div class="mb-6">
                     <h3 class="text-lg font-medium text-gray-800 mb-4">Adicionar Discos</h3>
-                    
+
                     <div class="flex space-x-4 mb-4">
                         <div class="flex-grow">
                             <label for="vinyl_search" class="block text-sm font-medium text-gray-700 mb-1">Buscar Disco</label>
@@ -101,14 +101,14 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Itens do Carrinho -->
                 <div class="mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-medium text-gray-800">Itens da Venda</h3>
                         <span id="itemCount" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-1 rounded">0 itens</span>
                     </div>
-                    
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -152,10 +152,10 @@
                         </table>
                     </div>
                 </div>
-                
+
                 <!-- Items JSON -->
                 <div id="itemsContainer"></div>
-                
+
                 <!-- Botões de Ação -->
                 <div class="flex justify-end space-x-4">
                     <a href="{{ route('admin.pos.index') }}" class="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
@@ -169,18 +169,67 @@
         </div>
     </div>
 
+    <!-- Estilos específicos para imagens -->
+    <style>
+        .vinyl-image {
+            transition: all 0.3s ease;
+            background-color: #f3f4f6;
+        }
+
+        .vinyl-image:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .vinyl-image-loading {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMTgiIHN0cm9rZT0iI0U1RTdFQiIgc3Ryb2tlLXdpZHRoPSI0Ii8+CjxwYXRoIGQ9Ik0zOCAyMEMzOCAzMC40OTM0IDI5LjQ5MzQgMzkgMTkgMzlDOC41MDY1OSAzOSAwIDMwLjQ5MzQgMCAyMEMwIDkuNTA2NTkgOC41MDY1OSAxIDE5IDFDMjkuNDkzNCAxIDM4IDkuNTA2NTkgMzggMjAiIHN0cm9rZT0iIzM5OEVGNyIgc3Ryb2tlLXdpZHRoPSI0IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPC9zdmc+');
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 20px 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .search-result-item {
+            transition: background-color 0.2s ease;
+        }
+
+        .search-result-item:hover {
+            background-color: #f9fafb;
+        }
+    </style>
+
     <!-- Scripts específicos para a página -->
     <script>
+        // Função para gerar URL das imagens do CDN
+        function getVinylImageUrl(imagePath) {
+            if (!imagePath) {
+                return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+            }
+
+            // Se a URL já está completa, retornar como está
+            if (imagePath.startsWith('http')) {
+                return imagePath;
+            }
+
+            const mediaUrl = '{{ config("filesystems.disks.media.url") }}';
+            return mediaUrl.replace(/\/$/, '') + '/' + imagePath.replace(/^\//, '');
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             const cart = [];
             let subtotal = 0;
-            
+
             // Toggle de tipo de cliente
             const clienteAnon = document.getElementById('clienteAnon');
             const clienteReg = document.getElementById('clienteReg');
             const anonClientContainer = document.getElementById('anonClientContainer');
             const regClientContainer = document.getElementById('regClientContainer');
-            
+
             clienteAnon.addEventListener('change', function() {
                 if (this.checked) {
                     anonClientContainer.classList.remove('hidden');
@@ -188,22 +237,22 @@
                     document.getElementById('user_id').value = '';
                 }
             });
-            
+
             clienteReg.addEventListener('change', function() {
                 if (this.checked) {
                     anonClientContainer.classList.add('hidden');
                     regClientContainer.classList.remove('hidden');
                 }
             });
-            
+
             // Busca de usuários
             const userSearch = document.getElementById('user_search');
             const usersResult = document.getElementById('usersResult');
             let typingTimer;
-            
+
             userSearch.addEventListener('input', function() {
                 clearTimeout(typingTimer);
-                
+
                 if (userSearch.value) {
                     typingTimer = setTimeout(function() {
                         searchUsers(userSearch.value);
@@ -213,13 +262,13 @@
                     usersResult.classList.add('hidden');
                 }
             });
-            
+
             function searchUsers(query) {
                 fetch(`{{ route('admin.pos.search-users') }}?query=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(data => {
                         usersResult.innerHTML = '';
-                        
+
                         if (data.length > 0) {
                             data.forEach(user => {
                                 const userEl = document.createElement('div');
@@ -243,7 +292,7 @@
                         console.error('Erro ao buscar usuários:', error);
                     });
             }
-            
+
             function selectUser(user) {
                 document.getElementById('user_id').value = user.id;
                 document.getElementById('selectedUserName').textContent = user.name;
@@ -252,15 +301,15 @@
                 userSearch.value = '';
                 usersResult.classList.add('hidden');
             }
-            
+
             // Busca de discos
             const vinylSearch = document.getElementById('vinyl_search');
             const vinylsResult = document.getElementById('vinylsResult');
             let vinylTypingTimer;
-            
+
             vinylSearch.addEventListener('input', function() {
                 clearTimeout(vinylTypingTimer);
-                
+
                 if (vinylSearch.value) {
                     vinylTypingTimer = setTimeout(function() {
                         searchVinyls(vinylSearch.value);
@@ -270,29 +319,42 @@
                     vinylsResult.classList.add('hidden');
                 }
             });
-            
+
             function searchVinyls(query) {
                 fetch(`{{ route('admin.pos.search-vinyls') }}?query=${encodeURIComponent(query)}`)
                     .then(response => response.json())
                     .then(data => {
                         vinylsResult.innerHTML = '';
-                        
+
                         if (data.length > 0) {
                             data.forEach(vinyl => {
                                 const vinylEl = document.createElement('div');
-                                vinylEl.className = 'p-2 hover:bg-gray-100 cursor-pointer';
+                                vinylEl.className = 'search-result-item p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0';
                                 vinylEl.innerHTML = `
                                     <div class="flex items-center">
-                                        <div class="flex-shrink-0 h-10 w-10">
-                                            <img class="h-10 w-10 rounded-full" src="${vinyl.cover_image ? '{{ asset("') + vinyl.cover_image + '") }}' : '{{ asset("images/placeholder.jpg") }}'}" alt="${vinyl.title}">
+                                        <div class="flex-shrink-0 h-12 w-12">
+                                            <img class="vinyl-image h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                                 src="${getVinylImageUrl(vinyl.cover_image)}"
+                                                 alt="${vinyl.title}"
+                                                 loading="lazy"
+                                                 onerror="this.src='{{ asset('images/placeholder.jpg') }}'; this.classList.remove('vinyl-image-loading');"
+                                                 onload="this.classList.remove('vinyl-image-loading');">
                                         </div>
-                                        <div class="ml-4">
-                                            <div class="font-medium">${vinyl.title}</div>
-                                            <div class="text-sm text-gray-600">${vinyl.artist}</div>
-                                            <div class="text-xs text-gray-500">${vinyl.catalog_number} - R$ ${formatCurrency(vinyl.price)}</div>
+                                        <div class="ml-4 flex-1 min-w-0">
+                                            <div class="font-medium text-gray-900 truncate">${vinyl.title}</div>
+                                            <div class="text-sm text-gray-600 truncate">${vinyl.artist}</div>
+                                            <div class="flex items-center justify-between mt-1">
+                                                <div class="text-xs text-gray-500">${vinyl.catalog_number}</div>
+                                                <div class="text-sm font-semibold text-green-600">R$ ${formatCurrency(vinyl.price)}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 `;
+
+                                // Adicionar classe de loading inicial
+                                const img = vinylEl.querySelector('img');
+                                img.classList.add('vinyl-image-loading');
+
                                 vinylEl.addEventListener('click', function() {
                                     addToCart(vinyl);
                                 });
@@ -308,7 +370,7 @@
                         console.error('Erro ao buscar discos:', error);
                     });
             }
-            
+
             function addToCart(vinyl) {
                 // Verifica se o disco já está no carrinho
                 if (cart.some(item => item.id === vinyl.id)) {
@@ -317,28 +379,29 @@
                     vinylsResult.classList.add('hidden');
                     return;
                 }
-                
+
                 // Adiciona ao carrinho
                 cart.push({
                     id: vinyl.id,
                     title: vinyl.title,
                     artist: vinyl.artist,
                     catalog_number: vinyl.catalog_number,
+                    cover_image: vinyl.cover_image,
                     price: vinyl.price,
                     discount: 0,
                     total: vinyl.price
                 });
-                
+
                 updateCartDisplay();
                 vinylSearch.value = '';
                 vinylsResult.classList.add('hidden');
             }
-            
+
             function removeFromCart(index) {
                 cart.splice(index, 1);
                 updateCartDisplay();
             }
-            
+
             function updateCartDisplay() {
                 const cartItems = document.getElementById('cartItems');
                 const emptyCart = document.getElementById('emptyCart');
@@ -347,11 +410,11 @@
                 const subtotalEl = document.getElementById('subtotal');
                 const totalValueEl = document.getElementById('totalValue');
                 const submitSale = document.getElementById('submitSale');
-                
+
                 // Limpa o carrinho atual
                 cartItems.innerHTML = '';
                 itemsContainer.innerHTML = '';
-                
+
                 if (cart.length === 0) {
                     cartItems.appendChild(emptyCart);
                     itemCount.textContent = '0 itens';
@@ -360,19 +423,26 @@
                     submitSale.disabled = true;
                     return;
                 }
-                
+
                 // Atualiza o contador
                 itemCount.textContent = cart.length + (cart.length === 1 ? ' item' : ' itens');
-                
+
                 // Recalcula o subtotal
                 subtotal = 0;
-                
+
                 cart.forEach((item, index) => {
                     // Cria a linha na tabela
                     const row = document.createElement('tr');
                     row.innerHTML = `
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
+                                <div class="flex-shrink-0 h-12 w-12">
+                                    <img class="vinyl-image h-12 w-12 rounded-lg object-cover border border-gray-200"
+                                         src="${getVinylImageUrl(item.cover_image)}"
+                                         alt="${item.title}"
+                                         loading="lazy"
+                                         onerror="this.src='{{ asset('images/placeholder.jpg') }}'">
+                                </div>
                                 <div class="ml-4">
                                     <div class="text-sm font-medium text-gray-900">${item.title}</div>
                                     <div class="text-sm text-gray-500">${item.artist}</div>
@@ -384,7 +454,7 @@
                             R$ ${formatCurrency(item.price)}
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="number" min="0" max="${item.price}" step="0.01" value="${item.discount}" 
+                            <input type="number" min="0" max="${item.price}" step="0.01" value="${item.discount}"
                                 class="item-discount w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-500 focus:ring-opacity-50"
                                 onchange="updateItemDiscount(${index}, this.value)">
                         </td>
@@ -398,7 +468,7 @@
                         </td>
                     `;
                     cartItems.appendChild(row);
-                    
+
                     // Cria os inputs hidden
                     const itemInput = document.createElement('div');
                     itemInput.innerHTML = `
@@ -408,32 +478,32 @@
                         <input type="hidden" name="items[${index}][item_discount]" value="${item.discount}" class="item-discount-input-${index}">
                     `;
                     itemsContainer.appendChild(itemInput);
-                    
+
                     // Atualiza o subtotal
                     subtotal += (item.price - item.discount);
                 });
-                
+
                 // Atualiza o subtotal e total
                 subtotalEl.textContent = formatCurrency(subtotal);
                 updateTotal();
-                
+
                 // Habilita o botão de finalizar
                 submitSale.disabled = false;
             }
-            
+
             // Atualiza o desconto de um item
             window.updateItemDiscount = function(index, value) {
                 const discount = parseFloat(value) || 0;
                 cart[index].discount = discount;
                 document.querySelector(`.item-discount-input-${index}`).value = discount;
-                
+
                 // Recalcula o total do item
                 cart[index].total = cart[index].price - cart[index].discount;
-                
+
                 // Atualiza o display
                 updateCartDisplay();
             };
-            
+
             // Atualiza o total
             function updateTotal() {
                 const discountEl = document.getElementById('discount');
@@ -441,37 +511,37 @@
                 const discountValueEl = document.getElementById('discountValue');
                 const shippingValueEl = document.getElementById('shippingValue');
                 const totalValueEl = document.getElementById('totalValue');
-                
+
                 const discount = parseFloat(discountEl.value) || 0;
                 const shipping = parseFloat(shippingEl.value) || 0;
-                
+
                 discountValueEl.textContent = formatCurrency(discount);
                 shippingValueEl.textContent = formatCurrency(shipping);
-                
+
                 const total = subtotal - discount + shipping;
                 totalValueEl.textContent = formatCurrency(total);
             }
-            
+
             // Formatação de valores monetários
             function formatCurrency(value) {
                 return parseFloat(value).toFixed(2).replace('.', ',');
             }
-            
+
             // Event listeners para atualizar o total
             document.getElementById('discount').addEventListener('input', updateTotal);
             document.getElementById('shipping').addEventListener('input', updateTotal);
-            
+
             // Evita clicks fora dos resultados
             document.addEventListener('click', function(e) {
                 if (!usersResult.contains(e.target) && e.target !== userSearch) {
                     usersResult.classList.add('hidden');
                 }
-                
+
                 if (!vinylsResult.contains(e.target) && e.target !== vinylSearch) {
                     vinylsResult.classList.add('hidden');
                 }
             });
-            
+
             // Define as funções no escopo global
             window.removeFromCart = removeFromCart;
         });

@@ -56,11 +56,25 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="flex-none">
+                     <select name="stock_status" onchange="document.getElementById('filter-form').submit()" class="p-2.5 text-sm text-gray-900 border border-gray-300 rounded-lg bg-white focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos os estoques</option>
+                        <option value="available" {{ request('stock_status') == 'available' ? 'selected' : '' }}>
+                            ✅ Disponíveis
+                        </option>
+                        <option value="unavailable" {{ request('stock_status') == 'unavailable' ? 'selected' : '' }}>
+                            ❌ Indisponíveis
+                        </option>
+                        <option value="low_stock" {{ request('stock_status') == 'low_stock' ? 'selected' : '' }}>
+                            ⚠️ Estoque baixo (≤5)
+                        </option>
+                    </select>
+                </div>
                 <button type="submit"
                         class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300">
                     Buscar
                 </button>
-                @if(request('search') || request('category_id'))
+                @if(request('search') || request('category_id') || request('stock_status'))
                     <a href="{{ route('admin.vinyls.index') }}"
                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200">
                         Limpar
@@ -85,11 +99,47 @@
                 @endif
             </div>
         @else
-            @if(request('search'))
+            @if(request('search') || request('category_id') || request('stock_status'))
                 <div class="mb-4">
-                    <p class="text-sm text-gray-600">
-                        Encontrados <span class="font-medium">{{ $vinyls->total() }}</span> resultados para "<span class="font-medium">{{ request('search') }}</span>"
-                    </p>
+                    <div class="flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <span>Filtros ativos:</span>
+
+                        @if(request('search'))
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                🔍 "{{ request('search') }}"
+                            </span>
+                        @endif
+
+                        @if(request('category_id'))
+                            @php
+                                $selectedCategory = $categories->find(request('category_id'));
+                            @endphp
+                            @if($selectedCategory)
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    📂 {{ $selectedCategory->name }}
+                                </span>
+                            @endif
+                        @endif
+
+                        @if(request('stock_status'))
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {{ request('stock_status') == 'available' ? 'bg-green-100 text-green-800' : '' }}
+                                {{ request('stock_status') == 'unavailable' ? 'bg-red-100 text-red-800' : '' }}
+                                {{ request('stock_status') == 'low_stock' ? 'bg-yellow-100 text-yellow-800' : '' }}">
+                                @if(request('stock_status') == 'available')
+                                    ✅ Disponíveis
+                                @elseif(request('stock_status') == 'unavailable')
+                                    ❌ Indisponíveis
+                                @elseif(request('stock_status') == 'low_stock')
+                                    ⚠️ Estoque baixo
+                                @endif
+                            </span>
+                        @endif
+
+                        <span class="text-gray-500">•</span>
+                        <span class="font-medium">{{ $vinyls->total() }}</span>
+                        <span>{{ $vinyls->total() == 1 ? 'resultado' : 'resultados' }}</span>
+                    </div>
                 </div>
             @endif
             <div class="relative overflow-x-auto shadow-lg ">
@@ -125,87 +175,147 @@
 </x-admin-layout>
 
 
-{{-- JavaScript para otimizar carregamento de imagens --}}
+{{-- JavaScript otimizado para carregamento de imagens do CDN --}}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Configurar lazy loading e fallback para imagens
+    // Configurar carregamento otimizado das imagens
     const images = document.querySelectorAll('#vinyl-table-body img');
-    
-    images.forEach(function(img) {
-        // Adicionar loading="lazy" se não estiver presente
-        if (!img.hasAttribute('loading')) {
-            img.setAttribute('loading', 'lazy');
+    const cdnUrl = '{{ config("filesystems.disks.media.url") }}';
+
+    console.log('🖼️ Inicializando carregamento de', images.length, 'imagens do CDN:', cdnUrl);
+
+    images.forEach(function(img, index) {
+        const vinylId = img.closest('tr')?.querySelector('[data-modal-target]')?.getAttribute('data-modal-target')?.replace('crypto-modal-', '');
+        const loadingIndicator = document.getElementById('loading-' + vinylId);
+
+        // Mostrar indicador de carregamento
+        if (loadingIndicator && !img.complete) {
+            loadingIndicator.classList.remove('opacity-0');
+            loadingIndicator.classList.add('opacity-100');
         }
-        
-        // Adicionar timeout para imagens que demoram muito para carregar
+
+        // Timeout para imagens que demoram muito
         const timeout = setTimeout(function() {
-            if (!img.complete) {
-                console.warn('Imagem demorou muito para carregar:', img.src);
-                img.onerror(); // Força o fallback
+            if (!img.complete && img.src.includes(cdnUrl)) {
+                console.warn('⚠️ Timeout na imagem:', img.src);
+                img.onerror();
             }
-        }, 5000); // 5 segundos timeout
-        
-        // Limpar timeout quando a imagem carregar
+        }, 3000); // 3 segundos timeout para CDN
+
+        // Quando a imagem carregar com sucesso
         img.addEventListener('load', function() {
             clearTimeout(timeout);
+
+            // Esconder indicador de carregamento
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('opacity-100');
+                loadingIndicator.classList.add('opacity-0');
+            }
+
+            // Adicionar efeito de fade-in
+            this.classList.remove('opacity-0');
+            this.classList.add('opacity-100');
+
+            console.log('✅ Imagem carregada:', this.src);
         });
-        
-        // Melhorar o fallback de erro
+
+        // Tratamento de erro melhorado
         img.addEventListener('error', function() {
             clearTimeout(timeout);
+
+            // Esconder indicador de carregamento
+            if (loadingIndicator) {
+                loadingIndicator.classList.remove('opacity-100');
+                loadingIndicator.classList.add('opacity-0');
+            }
+
             if (!this.dataset.fallbackApplied) {
                 this.dataset.fallbackApplied = 'true';
+
+                // Log do erro para debug
+                console.error('❌ Erro ao carregar imagem:', this.src);
+
+                // Aplicar fallback SVG
                 this.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
                 this.alt = 'Imagem não disponível';
-                this.title = 'Imagem não pôde ser carregada';
+                this.title = 'Imagem não pôde ser carregada do CDN';
+                this.classList.add('opacity-75');
             }
         });
+
+        // Se a imagem já estiver carregada (cache)
+        if (img.complete && img.naturalHeight !== 0) {
+            if (loadingIndicator) {
+                loadingIndicator.classList.add('opacity-0');
+            }
+            img.classList.add('opacity-100');
+        }
     });
-    
-    // Adicionar indicador de carregamento para a tabela
-    const tableBody = document.getElementById('vinyl-table-body');
-    if (tableBody && tableBody.children.length > 20) {
-        // Para tabelas grandes, mostrar indicador de progresso
-        let loadedImages = 0;
+
+    // Indicador de progresso para muitas imagens
+    if (images.length > 15) {
+        let loadedCount = 0;
         const totalImages = images.length;
-        
-        if (totalImages > 0) {
-            const progressBar = document.createElement('div');
-            progressBar.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50';
-            progressBar.innerHTML = `<div class="flex items-center gap-2">
+
+        // Criar barra de progresso
+        const progressBar = document.createElement('div');
+        progressBar.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300';
+        progressBar.innerHTML = `
+            <div class="flex items-center gap-3">
                 <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Carregando imagens... <span id="progress-count">0</span>/${totalImages}</span>
-            </div>`;
-            document.body.appendChild(progressBar);
-            
-            images.forEach(function(img) {
-                function updateProgress() {
-                    loadedImages++;
-                    const progressCount = document.getElementById('progress-count');
-                    if (progressCount) {
-                        progressCount.textContent = loadedImages;
-                    }
-                    
-                    if (loadedImages >= totalImages) {
-                        setTimeout(function() {
-                            if (progressBar.parentNode) {
-                                progressBar.remove();
-                            }
-                        }, 1000);
-                    }
-                }
-                
-                if (img.complete) {
-                    updateProgress();
-                } else {
-                    img.addEventListener('load', updateProgress);
-                    img.addEventListener('error', updateProgress);
-                }
-            });
+                <div>
+                    <div class="text-sm font-medium">Carregando imagens do CDN</div>
+                    <div class="text-xs opacity-90">
+                        <span id="progress-count">0</span>/${totalImages}
+                        (<span id="progress-percent">0</span>%)
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(progressBar);
+
+        function updateProgress() {
+            loadedCount++;
+            const percent = Math.round((loadedCount / totalImages) * 100);
+
+            const countEl = document.getElementById('progress-count');
+            const percentEl = document.getElementById('progress-percent');
+
+            if (countEl) countEl.textContent = loadedCount;
+            if (percentEl) percentEl.textContent = percent;
+
+            if (loadedCount >= totalImages) {
+                setTimeout(function() {
+                    progressBar.style.transform = 'translateX(100%)';
+                    setTimeout(() => progressBar.remove(), 300);
+                }, 500);
+            }
         }
+
+        // Monitorar carregamento
+        images.forEach(function(img) {
+            if (img.complete && img.naturalHeight !== 0) {
+                updateProgress();
+            } else {
+                img.addEventListener('load', updateProgress);
+                img.addEventListener('error', updateProgress);
+            }
+        });
     }
+
+    // Debug: Mostrar estatísticas no console
+    setTimeout(function() {
+        const loadedImages = Array.from(images).filter(img => img.complete && img.naturalHeight !== 0).length;
+        const errorImages = Array.from(images).filter(img => img.dataset.fallbackApplied).length;
+
+        console.log('📊 Estatísticas de carregamento:');
+        console.log('   ✅ Carregadas:', loadedImages);
+        console.log('   ❌ Com erro:', errorImages);
+        console.log('   📊 Total:', images.length);
+        console.log('   🎯 Taxa de sucesso:', Math.round((loadedImages / images.length) * 100) + '%');
+    }, 5000);
 });
 </script>

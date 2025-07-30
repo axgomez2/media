@@ -8,7 +8,7 @@
             &larr; Voltar para Relatórios
         </a>
     </div>
-    
+
     <!-- Cards de estatísticas -->
     <div class="grid gap-6 mb-8 md:grid-cols-2 xl:grid-cols-4">
         <!-- Total de discos -->
@@ -27,7 +27,7 @@
                 </p>
             </div>
         </div>
-        
+
         <!-- Discos disponíveis -->
         <div class="flex items-center p-4 bg-white rounded-lg shadow-xs ">
             <div class="p-3 mr-4 text-green-500 bg-green-100 rounded-full ">
@@ -44,7 +44,7 @@
                 </p>
             </div>
         </div>
-        
+
         <!-- Discos indisponíveis -->
         <div class="flex items-center p-4 bg-white rounded-lg shadow-xs ">
             <div class="p-3 mr-4 text-red-500 bg-red-100 rounded-full ">
@@ -61,7 +61,7 @@
                 </p>
             </div>
         </div>
-        
+
         <!-- Lucro potencial -->
         <div class="flex items-center p-4 bg-white rounded-lg shadow-xs ">
             <div class="p-3 mr-4 text-blue-500 bg-blue-100 rounded-full ">
@@ -79,7 +79,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Resumo de valores -->
     <div class="p-4 bg-white rounded-lg shadow-md mb-8">
         <h3 class="text-lg font-medium text-gray-700 mb-4">Resumo Financeiro</h3>
@@ -98,12 +98,12 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Estatísticas por Fornecedor -->
     @if(count($supplierStats) > 0)
     <div class="p-4 bg-white rounded-lg shadow-md mb-8">
         <h3 class="text-lg font-medium text-gray-700 mb-4">Estatísticas por Fornecedor</h3>
-        
+
         <!-- Gráfico de Discos por Fornecedor -->
         <div class="mb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -121,7 +121,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="overflow-x-auto">
             <table class="w-full whitespace-nowrap">
                 <thead>
@@ -152,7 +152,7 @@
         </div>
     </div>
     @endif
-    
+
     <!-- Lista de discos -->
     <div class="p-4 bg-white rounded-lg shadow-md ">
         <h3 class="text-lg font-medium text-gray-700 mb-4">Lista de Discos</h3>
@@ -160,7 +160,7 @@
             <table class="w-full whitespace-nowrap">
                 <thead>
                     <tr class="text-xs font-semibold tracking-wide text-left text-gray-500 uppercase border-b bg-gray-50 ">
-                        <th class="px-4 py-3">Disco</th>
+
                         <th class="px-4 py-3">Fornecedor</th>
                         <th class="px-4 py-3">Status</th>
                         <th class="px-4 py-3">Valor de Compra</th>
@@ -173,9 +173,7 @@
                     <tr class="text-gray-700 ">
                         <td class="px-4 py-3">
                             <div class="flex items-center text-sm">
-                                <div class="relative hidden w-8 h-8 mr-3 rounded-full md:block">
-                                    <img class="object-cover w-full h-full rounded-full" src="{{ asset($disc->vinylMaster->cover_image ?? 'images/placeholder.jpg') }}" alt="{{ $disc->vinylMaster->title }}">
-                                </div>
+
                                 <div>
                                     <p class="font-semibold">{{ $disc->vinylMaster->title }}</p>
                                     <p class="text-xs text-gray-600">{{ $disc->catalog_number }}</p>
@@ -212,19 +210,19 @@
         var suppliers = [];
         var quantities = [];
         var values = [];
-        
+
         @foreach($supplierStats as $stat)
             suppliers.push("{{ $stat->supplier_name }}");
             quantities.push({{ $stat->total_discs }});
             values.push({{ $stat->total_buy }});
         @endforeach
-        
+
         // Cores para os gráficos
         var colors = [
-            '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0', 
+            '#36A2EB', '#FF6384', '#FFCE56', '#4BC0C0',
             '#9966FF', '#FF9F40', '#C7C7C7'
         ];
-        
+
         // Gráfico de barras - Quantidade de discos
         var discsChart = new Chart(
             document.getElementById('supplierDiscsChart'),
@@ -245,7 +243,7 @@
                 }
             }
         );
-        
+
         // Gráfico de pizza - Valor de compra
         var valueChart = new Chart(
             document.getElementById('supplierValueChart'),

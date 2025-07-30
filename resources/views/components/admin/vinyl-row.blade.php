@@ -1,10 +1,49 @@
 <tr class="bg-white border-b hover:bg-gray-50">
     <td class="p-4 w-32">
-        <img class="w-16 h-16 rounded-lg object-cover"
-             src="{{ $vinyl->cover_image ? route('media.show', ['path' => $vinyl->cover_image]) : asset('images/borken.png') }}"
-             loading="lazy"
-             onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'; this.onerror=null;"
-             alt="Capa do disco">
+        @php
+            // Função inline para gerar URL da imagem do CDN
+            $getImageUrl = function($imagePath) {
+                if (!$imagePath) {
+                    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+';
+                }
+
+                // Se a URL já está completa, retornar como está
+                if (str_starts_with($imagePath, 'http')) {
+                    return $imagePath;
+                }
+
+                $mediaUrl = config('filesystems.disks.media.url');
+                return rtrim($mediaUrl, '/') . '/' . ltrim($imagePath, '/');
+            };
+
+            $imageUrl = $getImageUrl($vinyl->cover_image);
+            $fallbackUrl = $getImageUrl(null);
+        @endphp
+
+        <div class="relative group">
+            <img class="w-16 h-16 rounded-lg object-cover transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                 src="{{ $imageUrl }}"
+                 loading="lazy"
+                 onerror="this.onerror=null; this.src='{{ $fallbackUrl }}'; this.classList.add('opacity-75'); this.title='Imagem não disponível';"
+                 alt="Capa: {{ $vinyl->title }}"
+                 title="{{ $vinyl->artists->pluck('name')->join(', ') }} - {{ $vinyl->title }}"
+                 data-vinyl-id="{{ $vinyl->id }}">
+
+            <!-- Indicador de carregamento -->
+            <div class="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-lg opacity-0 transition-opacity duration-300"
+                 id="loading-{{ $vinyl->id }}">
+                <svg class="animate-spin h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+
+            <!-- Badge de status da imagem (apenas para debug) -->
+            @if(config('app.debug') && $vinyl->cover_image)
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white opacity-0 group-hover:opacity-100 transition-opacity"
+                     title="Imagem do CDN: {{ $vinyl->cover_image }}"></div>
+            @endif
+        </div>
     </td>
     <td class="px-2 py-4">
         <div class="font-semibold text-gray-900">
@@ -24,7 +63,34 @@
     <td class="px-6 py-4 font-medium text-gray-900">R$ {{ $vinyl->vinylSec->price ?? '--' }}</td>
     <td class="px-6 py-4 font-medium text-gray-900">R$ {{ $vinyl->vinylSec->promotional_price ?? '--' }}</td>
     <td class="px-6 py-4">{{ $vinyl->release_year }}</td>
-    <td class="px-6 py-4">{{ $vinyl->vinylSec->stock ?? '0' }}</td>
+    <td class="px-6 py-4">
+        @php
+            $stock = $vinyl->vinylSec->stock ?? 0;
+            $inStock = $vinyl->vinylSec->in_stock ?? false;
+            $isAvailable = $inStock && $stock > 0;
+            $isLowStock = $isAvailable && $stock <= 5;
+        @endphp
+
+        <div class="flex items-center space-x-2">
+            <span class="font-medium">{{ $stock }}</span>
+
+            @if($isAvailable)
+                @if($isLowStock)
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        ⚠️ Baixo
+                    </span>
+                @else
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        ✅ OK
+                    </span>
+                @endif
+            @else
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    ❌ Indisponível
+                </span>
+            @endif
+        </div>
+    </td>
     <td class="px-6 py-4">
         <div class="space-y-3">
             <!-- Toggle Promoção -->

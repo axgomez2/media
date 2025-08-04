@@ -131,10 +131,22 @@ Route::prefix('relatorios')->group(function () {
     Route::get('/', [ReportsController::class, 'index'])->name('admin.reports.index');
     Route::get('/discos', [ReportsController::class, 'vinyl'])->name('admin.reports.vinyl');
 
+    // Relatórios de clientes (com middleware adicional de validação)
+    Route::middleware('validate.client.reports')->group(function () {
+        Route::get('/clientes', [\App\Http\Controllers\Admin\ClientReportsController::class, 'index'])->name('admin.reports.clients.index');
+        Route::get('/clientes/export', [\App\Http\Controllers\Admin\ClientReportsController::class, 'export'])->name('admin.reports.clients.export');
+        Route::get('/clientes/{id}', [\App\Http\Controllers\Admin\ClientReportsController::class, 'show'])->name('admin.reports.clients.show');
+        Route::put('/clientes/{id}/status', [\App\Http\Controllers\Admin\ClientReportsController::class, 'updateStatus'])->name('admin.reports.clients.update_status');
+        Route::delete('/clientes/cache', [\App\Http\Controllers\Admin\ClientReportsController::class, 'clearCache'])->name('admin.reports.clients.clear_cache');
+    });
+
+    // Log de erros do cliente
+    Route::post('/log-client-error', [\App\Http\Controllers\Admin\ClientErrorLogController::class, 'logError'])->name('admin.log_client_error');
+
     // Relatórios de carrinhos
     Route::get('/carrinhos', [ReportsController::class, 'carts'])->name('admin.reports.carts');
     Route::get('/carrinhos/{productId}', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
-    
+
     // Carrinhos abertos
     Route::get('/carrinhos-abertos', [ReportsController::class, 'openCarts'])->name('admin.reports.open_carts');
     Route::get('/carrinhos-abertos/{cartId}/items', [ReportsController::class, 'getCartItems'])->name('admin.reports.cart_items');
@@ -255,7 +267,7 @@ Route::prefix('analise-mercado')->group(function () {
     Route::post('/forcar-analise', [MarketAnalysisController::class, 'forceAnalysis'])->name('admin.market-analysis.force');
     Route::get('/exportar', [MarketAnalysisController::class, 'exportCsv'])->name('admin.market-analysis.export');
     Route::post('/auto-collect', [MarketAnalysisController::class, 'autoCollect'])->name('admin.market-analysis.auto-collect');
-    
+
     // Rotas de CRUD
     Route::post('/store', [MarketAnalysisController::class, 'store'])->name('admin.market-analysis.store');
     Route::put('/{marketAnalysis}', [MarketAnalysisController::class, 'update'])->name('admin.market-analysis.update');

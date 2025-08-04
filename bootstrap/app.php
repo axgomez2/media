@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
             'client' => \App\Http\Middleware\EnsureUserIsClient::class,
+            'validate.client.reports' => \App\Http\Middleware\ValidateClientReportsAccess::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

@@ -3,23 +3,21 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Wishlist extends Model
 {
-    protected $table = 'wishlists';
-    public $incrementing = false;            // sem PK autoincremental
-    protected $keyType = 'string';           // UUID
-    public $timestamps = true;
+    protected $fillable = [
+        'user_id',
+        'product_id'
+    ];
 
-    protected $fillable = ['user_id', 'product_id'];
+    protected $casts = [
+        'user_id' => 'string'
+    ];
 
-    public function user()
+    public function user(): BelongsTo
     {
         return $this->belongsTo(ClientUser::class, 'user_id');
-    }
-
-    public function product()
-    {
-        return $this->belongsTo(Product::class);
     }
 }

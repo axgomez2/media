@@ -13,6 +13,7 @@ use App\Models\CartItem;
 use App\Models\Wishlist;
 use App\Models\Wantlist;
 use App\Models\Product;
+use App\Models\ClientUser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -21,18 +22,20 @@ class ReportsController extends Controller
     public function index()
     {
         // Dashboard geral com links para os diversos relatórios
-        
+
         // Estatísticas rápidas para exibir no dashboard
         $cartItemsCount = CartItem::count();
         $wishlistItemsCount = Wishlist::count();
         $wantlistItemsCount = Wantlist::count();
         $viewsCount = DB::table('vinyl_views')->count();
-        
+        $clientsCount = ClientUser::count();
+
         return view('admin.reports.index', compact(
             'cartItemsCount',
             'wishlistItemsCount',
             'wantlistItemsCount',
-            'viewsCount'
+            'viewsCount',
+            'clientsCount'
         ));
     }
 
@@ -42,20 +45,20 @@ class ReportsController extends Controller
         $totalDiscs = VinylSec::count();
         $availableDiscs = VinylSec::where('in_stock', true)->count();
         $unavailableDiscs = $totalDiscs - $availableDiscs;
-        
+
         // Valores totais
         $totalBuyValue = VinylSec::sum('buy_price');
         $totalSellValue = VinylSec::sum('price');
         $potentialProfit = $totalSellValue - $totalBuyValue;
-        
+
         // Dados para a lista de discos
         $discs = VinylSec::with(['vinylMaster', 'vinylMaster.artists', 'supplier', 'midiaStatus', 'coverStatus'])
             ->orderBy('created_at', 'desc')
             ->get();
-        
+
         // Dados agrupados por fornecedor com supplier_id não nulo
         $supplierStats = VinylSec::select(
-                DB::raw('IFNULL(supplier_id, 0) as supplier_id'), 
+                DB::raw('IFNULL(supplier_id, 0) as supplier_id'),
                 DB::raw('COUNT(*) as total_discs'),
                 DB::raw('SUM(buy_price) as total_buy'),
                 DB::raw('SUM(price) as total_sell'),
@@ -63,7 +66,7 @@ class ReportsController extends Controller
             )
             ->groupBy(DB::raw('IFNULL(supplier_id, 0)'))
             ->get();
-            
+
         // Enriquecendo dados com nomes dos fornecedores
         $supplierStats->map(function($item) {
             if ($item->supplier_id == 0) {
@@ -76,17 +79,17 @@ class ReportsController extends Controller
         });
 
         return view('admin.reports.vinyl', compact(
-            'totalDiscs', 
-            'availableDiscs', 
-            'unavailableDiscs', 
-            'totalBuyValue', 
-            'totalSellValue', 
+            'totalDiscs',
+            'availableDiscs',
+            'unavailableDiscs',
+            'totalBuyValue',
+            'totalSellValue',
             'potentialProfit',
             'discs',
             'supplierStats'
         ));
     }
-    
+
     /**
      * Exibe relatório de discos em carrinhos de compras
      */
@@ -110,7 +113,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.products_in_carts', compact('cartItems'));
     }
-    
+
     /**
      * Exibe detalhes de um produto específico em carrinhos
      */
@@ -118,7 +121,7 @@ class ReportsController extends Controller
     {
         // Buscar informações do produto
         $product = Product::findOrFail($productId);
-            
+
         // Buscar usuários que têm este produto no carrinho
         $cartUsers = DB::table('cart_items')
             ->join('carts', 'cart_items.cart_id', '=', 'carts.id')
@@ -138,7 +141,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.cart_details', compact('product', 'cartUsers'));
     }
-    
+
     /**
      * Exibe relatório de produtos em wishlists
      */
@@ -158,7 +161,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.wishlists', compact('wishlistItems'));
     }
-    
+
     /**
      * Exibe detalhes de um produto específico em wishlists
      */
@@ -166,7 +169,7 @@ class ReportsController extends Controller
     {
         // Buscar informações do produto
         $product = Product::findOrFail($productId);
-            
+
         // Buscar usuários que têm este produto na wishlist
         $wishlistUsers = DB::table('wishlists')
             ->join('users', 'wishlists.user_id', '=', 'users.id')
@@ -182,7 +185,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.wishlist_details', compact('product', 'wishlistUsers'));
     }
-    
+
     /**
      * Exibe relatório de discos em wantlists
      */
@@ -202,7 +205,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.wantlists', compact('wantlistItems'));
     }
-    
+
     /**
      * Exibe detalhes de um disco específico em wantlists
      */
@@ -211,7 +214,7 @@ class ReportsController extends Controller
         // Buscar informações do disco
         $vinyl = VinylMaster::with('artists')
             ->findOrFail($vinylMasterId);
-            
+
         // Buscar usuários que têm este disco na wantlist
         $wantlistUsers = DB::table('wantlists')
             ->join('users', 'wantlists.user_id', '=', 'users.id')
@@ -227,7 +230,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.wantlist_details', compact('vinyl', 'wantlistUsers'));
     }
-    
+
     /**
      * Exibe relatório de visualizações de discos
      */
@@ -250,7 +253,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.views', compact('vinylViews'));
     }
-    
+
     /**
      * Exibe detalhes de visualizações de um disco específico
      */
@@ -259,13 +262,13 @@ class ReportsController extends Controller
         // Buscar informações do disco
         $vinyl = VinylMaster::with('artists')
             ->findOrFail($vinylMasterId);
-            
+
         // Buscar visualizações detalhadas usando o modelo Eloquent
         $views = VinylView::with('user')
             ->where('vinyl_master_id', $vinylMasterId)
             ->orderBy('viewed_at', 'desc')
             ->get();
-            
+
         // Estatísticas de visualizações
         $viewStats = [
             'total' => $views->count(),
@@ -277,7 +280,7 @@ class ReportsController extends Controller
 
         return view('admin.reports.view_details', compact('vinyl', 'views', 'viewStats'));
     }
-    
+
     /**
      * Exibe todos os carrinhos ativos no sistema
      */
@@ -288,17 +291,17 @@ class ReportsController extends Controller
             ->where('status', 'active')
             ->orderBy('updated_at', 'desc')
             ->get();
-            
+
         // Para cada carrinho, buscar a quantidade de itens e valor total
         foreach ($carts as $cart) {
             $cart->items_count = CartItem::where('cart_id', $cart->id)->count();
             $cart->total_value = 0; // Inicializa o valor total
-            
+
             // Itens do carrinho com produtos associados para calcular valor total
             $cartItems = CartItem::where('cart_id', $cart->id)
                 ->with('product')
                 ->get();
-                
+
             foreach ($cartItems as $item) {
                 if ($item->product) {
                     $cart->total_value += $item->product->price;
@@ -308,25 +311,25 @@ class ReportsController extends Controller
 
         return view('admin.reports.carts', compact('carts'));
     }
-    
+
     /**
      * Retorna os itens de um carrinho específico para exibição em modal
      */
     public function getCartItems($cartId)
     {
         $cart = Cart::with('user')->findOrFail($cartId);
-        
+
         $items = CartItem::with('product')
             ->where('cart_id', $cartId)
             ->get();
-            
+
         $totalValue = 0;
         foreach ($items as $item) {
             if ($item->product) {
                 $totalValue += $item->product->price;
             }
         }
-        
+
         return response()->json([
             'success' => true,
             'cart' => $cart,

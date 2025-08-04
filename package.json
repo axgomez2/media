@@ -6,6 +6,7 @@
         "build": "vite build"
     },
     "dependencies": {
+        "@tailwindcss/line-clamp": "^0.4.4",
         "alpinejs": "^3.14.9",
         "axios": "^1.7.4",
         "flowbite": "^3.1.2"

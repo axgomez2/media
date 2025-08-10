@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\YouTubeController;
 use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\MarketAnalysisController;
+use App\Http\Controllers\Admin\NewsController;
+use App\Http\Controllers\Admin\NewsTopicController;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -148,6 +150,22 @@ Route::prefix('relatorios')->group(function () {
     Route::get('/carrinhos/{productId}', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
 
     // Carrinhos abertos
+});
+
+// Playlists
+Route::prefix('playlists')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\PlaylistController::class, 'index'])->name('admin.playlists.index');
+    Route::get('/create', [\App\Http\Controllers\Admin\PlaylistController::class, 'create'])->name('admin.playlists.create');
+    Route::post('/', [\App\Http\Controllers\Admin\PlaylistController::class, 'store'])->name('admin.playlists.store');
+    Route::get('/{playlist}', [\App\Http\Controllers\Admin\PlaylistController::class, 'show'])->name('admin.playlists.show');
+    Route::get('/{playlist}/edit', [\App\Http\Controllers\Admin\PlaylistController::class, 'edit'])->name('admin.playlists.edit');
+    Route::put('/{playlist}', [\App\Http\Controllers\Admin\PlaylistController::class, 'update'])->name('admin.playlists.update');
+    Route::delete('/{playlist}', [\App\Http\Controllers\Admin\PlaylistController::class, 'destroy'])->name('admin.playlists.destroy');
+    Route::patch('/{playlist}/toggle-status', [\App\Http\Controllers\Admin\PlaylistController::class, 'toggleStatus'])->name('admin.playlists.toggle-status');
+});
+
+// Relatórios adicionais (movidos para fora do grupo playlists)
+Route::prefix('relatorios')->group(function () {
     Route::get('/carrinhos-abertos', [ReportsController::class, 'openCarts'])->name('admin.reports.open_carts');
     Route::get('/carrinhos-abertos/{cartId}/items', [ReportsController::class, 'getCartItems'])->name('admin.reports.cart_items');
 
@@ -276,6 +294,28 @@ Route::prefix('analise-mercado')->group(function () {
     // APIs para dados dinâmicos
     Route::get('/api/graficos', [MarketAnalysisController::class, 'apiChartData'])->name('admin.market-analysis.api.charts');
     Route::get('/api/stats', [MarketAnalysisController::class, 'apiStats'])->name('admin.market-analysis.api.stats');
+});
+
+// Gerenciamento de Notícias
+Route::prefix('news')->name('admin.news.')->group(function () {
+    Route::get('/', [NewsController::class, 'index'])->name('index');
+    Route::get('/create', [NewsController::class, 'create'])->name('create');
+    Route::post('/', [NewsController::class, 'store'])->name('store');
+    Route::get('/{news}', [NewsController::class, 'show'])->name('show');
+    Route::get('/{news}/edit', [NewsController::class, 'edit'])->name('edit');
+    Route::put('/{news}', [NewsController::class, 'update'])->name('update');
+    Route::delete('/{news}', [NewsController::class, 'destroy'])->name('destroy');
+    Route::post('/generate-content', [NewsController::class, 'generateContent'])->name('generate-content');
+});
+
+// Gerenciamento de Tópicos de Notícias
+Route::prefix('news-topics')->name('admin.news-topics.')->group(function () {
+    Route::get('/', [NewsTopicController::class, 'index'])->name('index');
+    Route::get('/create', [NewsTopicController::class, 'create'])->name('create');
+    Route::post('/', [NewsTopicController::class, 'store'])->name('store');
+    Route::get('/{topic}/edit', [NewsTopicController::class, 'edit'])->name('edit');
+    Route::put('/{topic}', [NewsTopicController::class, 'update'])->name('update');
+    Route::delete('/{topic}', [NewsTopicController::class, 'destroy'])->name('destroy');
 });
 
 });

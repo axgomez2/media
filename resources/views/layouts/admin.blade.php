@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ $title ?? config('app.name', 'RDV DISCOS') }} - Admin</title>
+    <title>@yield('title', config('app.name', 'RDV DISCOS')) - Admin</title>
 
     <!-- Favicon -->
     @if($favicon = \App\Models\StoreInformation::getInstance()->favicon_url)
@@ -22,44 +22,82 @@
     <!-- Scripts -->
     @vite(['resources/css/admin.css', 'resources/js/admin.js'])
 
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <!-- Custom Styles for Playlist Search -->
+    <style>
+        .search-dropdown {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e0 #f7fafc;
+        }
+
+        .search-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .search-dropdown::-webkit-scrollbar-track {
+            background: #f7fafc;
+        }
+
+        .search-dropdown::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 3px;
+        }
+
+        .search-dropdown::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        .track-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+    </style>
+
 </head>
 <body class="font-sans antialiased bg-zinc-200 ">
     <div class="min-h-screen">
         <!-- Toast Notifications -->
-        {{-- @if(session('success'))
-            <x-site.toast type="success" message="{{ session('success') }}" />
+        @if(session('success'))
+            <div class="fixed top-4 right-4 z-50 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                {{ session('success') }}
+            </div>
         @endif
 
         @if(session('error'))
-            <x-site.toast type="error" message="{{ session('error') }}" />
+            <div class="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                {{ session('error') }}
+            </div>
         @endif
 
         @if(session('info'))
-            <x-site.toast type="info" message="{{ session('info') }}" />
+            <div class="fixed top-4 right-4 z-50 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                {{ session('info') }}
+            </div>
         @endif
 
         @if(session('warning'))
-            <x-site.toast type="warning" message="{{ session('warning') }}" />
+            <div class="fixed top-4 right-4 z-50 bg-yellow-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                {{ session('warning') }}
+            </div>
         @endif
 
         @if($errors->any())
             @foreach($errors->all() as $error)
-                <x-site.toast type="error" message="{{ $error }}" />
+                <div class="fixed top-4 right-4 z-50 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg">
+                    {{ $error }}
+                </div>
             @endforeach
         @endif
-         --}}
         <!-- Sidebar Component -->
         <x-admin.topbar />
         <x-admin.sidebar />
 
         <!-- Page Content -->
-        <div class="ml-64">
-
-
-
+        <div class="ml-64 pt-16">
             <!-- Main Content -->
             <main class="p-4">
-                {{ $slot }}
+               {{$slot}}
             </main>
         </div>
     </div>

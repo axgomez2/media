@@ -171,6 +171,57 @@ class AIContentServiceTest extends TestCase
         $this->assertEquals('keyword1, keyword2, keyword3', $result);
     }
 
+    public function test_process_response_limits_meta_description_length()
+    {
+        // Arrange
+        Config::set('services.openai.api_key', 'test-api-key');
+
+        $longDescription = str_repeat('This is a very long meta description that exceeds the character limit. ', 5);
+
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => $longDescription
+                        ]
+                    ]
+                ]
+            ], 200)
+        ]);
+
+        // Act
+        $result = $this->service->generateContent('test prompt', 'meta_description');
+
+        // Assert
+        $this->assertLessThanOrEqual(160, strlen($result));
+        $this->assertStringEndsWith('...', $result);
+    }
+
+    public function test_process_response_formats_meta_keywords()
+    {
+        // Arrange
+        Config::set('services.openai.api_key', 'test-api-key');
+
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => 'meta1; meta2| meta3 ,  meta4'
+                        ]
+                    ]
+                ]
+            ], 200)
+        ]);
+
+        // Act
+        $result = $this->service->generateContent('test prompt', 'meta_keywords');
+
+        // Assert
+        $this->assertEquals('meta1, meta2, meta3, meta4', $result);
+    }
+
     public function test_is_api_available_returns_correct_status()
     {
         // Test with API key
@@ -207,7 +258,7 @@ class AIContentServiceTest extends TestCase
         $types = $this->service->getSupportedTypes();
 
         // Assert
-        $this->assertEquals(['title', 'excerpt', 'content', 'keywords'], $types);
+        $this->assertEquals(['title', 'excerpt', 'content', 'keywords', 'meta_description', 'meta_keywords'], $types);
     }
 
     public function test_get_rate_limit_status_returns_correct_info()
@@ -229,7 +280,7 @@ class AIContentServiceTest extends TestCase
     public function test_get_fallback_content_returns_correct_content_for_each_type()
     {
         // Test each type
-        $types = ['title', 'excerpt', 'content', 'keywords'];
+        $types = ['title', 'excerpt', 'content', 'keywords', 'meta_description', 'meta_keywords'];
 
         foreach ($types as $type) {
             Config::set('services.openai.api_key', null);
@@ -248,6 +299,12 @@ class AIContentServiceTest extends TestCase
                     $this->assertStringContainsString('Conteúdo Gerado Automaticamente', $result);
                     break;
                 case 'keywords':
+                    $this->assertStringContainsString('notícias, blog', $result);
+                    break;
+                case 'meta_description':
+                    $this->assertStringContainsString('Descrição otimizada para SEO', $result);
+                    break;
+                case 'meta_keywords':
                     $this->assertStringContainsString('notícias, blog', $result);
                     break;
             }

@@ -84,14 +84,43 @@ class AdminErrorHandler {
         // Log no console para desenvolvimento
         console.error(`[${type}]`, data);
 
-        // Enviar para o servidor se não estivermos em desenvolvimento
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        // Enviar para o servidor apenas em produção e se não for um erro do próprio sistema de log
+        const isProduction = window.location.hostname !== 'localhost' &&
+                           window.location.hostname !== '127.0.0.1' &&
+                           !window.location.hostname.includes('.test');
+
+        const isLogError = data.url && data.url.includes('log-client-error');
+
+        if (isProduction && !isLogError) {
             this.sendErrorToServer(type, data);
         }
     }
 
     async sendErrorToServer(type, data) {
         try {
+            // Verificar se o erro é relacionado ao próprio sistema de log para evitar loops
+            if (data.url && data.url.includes('log-client-error')) {
+                console.warn('Loop de erro detectado e ignorado:', type, data);
+                return;
+            }
+
+            // Verificar se já estamos enviando muitos erros (rate limiting)
+            if (!this.errorRateLimit) {
+                this.errorRateLimit = { count: 0, lastReset: Date.now() };
+            }
+
+            const now = Date.now();
+            if (now - this.errorRateLimit.lastReset > 60000) { // Reset a cada minuto
+                this.errorRateLimit = { count: 0, lastReset: now };
+            }
+
+            if (this.errorRateLimit.count >= 10) { // Máximo 10 erros por minuto
+                console.warn('Rate limit de erros atingido, ignorando erro:', type);
+                return;
+            }
+
+            this.errorRateLimit.count++;
+
             await fetch('/admin/log-client-error', {
                 method: 'POST',
                 headers: {
@@ -108,6 +137,7 @@ class AdminErrorHandler {
             });
         } catch (error) {
             console.error('Falha ao enviar erro para o servidor:', error);
+            // Não tentar reenviar para evitar loops infinitos
         }
     }
 

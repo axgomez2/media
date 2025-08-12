@@ -196,6 +196,36 @@ class VinylController extends Controller
             // Capturar o índice da imagem selecionada (padrão: 0 se não for especificado)
             $selectedCoverIndex = $request->input('selected_cover_index', 0);
 
+            // Processar notas editadas do formulário
+            $editedNotes = $request->input('notes');
+            if (!empty($editedNotes)) {
+                $releaseData['notes'] = $editedNotes;
+            }
+
+            // Processar tracks editadas do formulário
+            $editedTracks = $request->input('tracks');
+            if (!empty($editedTracks) && is_array($editedTracks)) {
+                // Mesclar dados das tracks editadas com as originais do Discogs
+                $originalTracklist = $releaseData['tracklist'] ?? [];
+                $updatedTracklist = [];
+
+                foreach ($editedTracks as $index => $editedTrack) {
+                    // Usar dados editados se disponíveis, senão usar dados originais
+                    $originalTrack = $originalTracklist[$index] ?? [];
+
+                    $updatedTracklist[] = [
+                        'title' => !empty($editedTrack['name']) ? $editedTrack['name'] : ($originalTrack['title'] ?? ''),
+                        'duration' => !empty($editedTrack['duration']) ? $editedTrack['duration'] : ($originalTrack['duration'] ?? ''),
+                        'youtube_url' => $editedTrack['youtube_url'] ?? null,
+                        'position' => $originalTrack['position'] ?? ($index + 1),
+                        'type_' => $originalTrack['type_'] ?? null,
+                        'extraartists' => $originalTrack['extraartists'] ?? []
+                    ];
+                }
+
+                $releaseData['tracklist'] = $updatedTracklist;
+            }
+
             // Criar o registro principal do vinyl - agora com o slug único e a imagem selecionada
             $vinylMaster = $this->vinylService->createOrUpdateVinylMaster($releaseData, $selectedCoverIndex);
 

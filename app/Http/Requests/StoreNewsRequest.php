@@ -165,4 +165,24 @@ class StoreNewsRequest extends FormRequest
             ]);
         }
     }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            // Custom validation: ensure published articles have required SEO fields
+            if ($this->input('status') === 'published') {
+                if (empty($this->input('meta_description'))) {
+                    $validator->errors()->add('meta_description', 'A meta descrição é obrigatória para artigos publicados.');
+                }
+
+                // Ensure meta description has minimum length for published articles
+                if (!empty($this->input('meta_description')) && strlen($this->input('meta_description')) < 50) {
+                    $validator->errors()->add('meta_description', 'A meta descrição deve ter pelo menos 50 caracteres.');
+                }
+            }
+        });
+    }
 }

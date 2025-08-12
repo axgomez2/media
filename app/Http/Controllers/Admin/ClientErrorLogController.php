@@ -14,23 +14,33 @@ class ClientErrorLogController extends Controller
     public function logError(Request $request)
     {
         try {
-            $request->validate([
-                'type' => 'required|string|max:100',
-                'data' => 'required|array',
-                'url' => 'required|string|max:500',
-                'userAgent' => 'required|string|max:500',
-                'timestamp' => 'required|date'
+            // Verificar se é um erro relacionado ao próprio sistema de log para evitar loops
+            $url = $request->input('url', '');
+            if (strpos($url, 'log-client-error') !== false) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Loop de erro detectado e ignorado'
+                ]);
+            }
+
+            // Validação mais flexível para logs de erro
+            $validated = $request->validate([
+                'type' => 'nullable|string|max:100',
+                'data' => 'nullable|array',
+                'url' => 'nullable|string|max:500',
+                'userAgent' => 'nullable|string|max:500',
+                'timestamp' => 'nullable|date'
             ]);
 
             // Sanitizar dados sensíveis
-            $data = $this->sanitizeErrorData($request->input('data'));
+            $data = $this->sanitizeErrorData($request->input('data', []));
 
             Log::error('Erro do cliente JavaScript', [
-                'type' => $request->input('type'),
+                'type' => $request->input('type', 'unknown'),
                 'data' => $data,
-                'url' => $request->input('url'),
-                'user_agent' => $request->input('userAgent'),
-                'client_timestamp' => $request->input('timestamp'),
+                'url' => $request->input('url', 'unknown'),
+                'user_agent' => $request->input('userAgent', 'unknown'),
+                'client_timestamp' => $request->input('timestamp', now()->toISOString()),
                 'server_timestamp' => now()->toISOString(),
                 'user_id' => auth()->id(),
                 'ip_address' => $request->ip(),

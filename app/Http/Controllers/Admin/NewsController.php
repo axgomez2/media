@@ -506,20 +506,24 @@ class NewsController extends Controller
                 'max:500',
                 'regex:/^[a-zA-Z0-9\s\-\.\,\!\?\:\;]+$/u' // Allow common punctuation
             ],
-            'type' => ['required', 'in:title,excerpt,content,keywords'],
+            'type' => ['required', 'in:title,excerpt,content,keywords,meta_description,meta_keywords'],
             'context' => ['nullable', 'string', 'max:200'] // Additional context
         ], [
             'prompt.min' => 'O prompt deve ter pelo menos 10 caracteres.',
             'prompt.regex' => 'O prompt contém caracteres não permitidos.',
         ]);
 
-        // Check if AI service is available
+        // Check if AI service is available - if not, return fallback content
         if (!$this->aiService->isApiAvailable()) {
+            $fallbackContent = $this->aiService->getFallbackContent($validated['type']);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Serviço de IA não está disponível no momento.',
-                'fallback' => true
-            ], 503);
+                'success' => true,
+                'content' => $fallbackContent,
+                'type' => $validated['type'],
+                'fallback' => true,
+                'message' => 'Serviço de IA não disponível. Conteúdo de exemplo fornecido.'
+            ]);
         }
 
         // Check rate limits

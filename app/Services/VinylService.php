@@ -350,6 +350,7 @@ class VinylService
                 // Normalizar o título da faixa
                 $title = trim($trackData['title']);
                 $duration = !empty($trackData['duration']) ? trim($trackData['duration']) : null;
+                $youtubeUrl = !empty($trackData['youtube_url']) ? trim($trackData['youtube_url']) : null;
                 $position = $position + 1; // Posição iniciando em 1
 
                 // Extrair informações adicionais, se disponíveis
@@ -390,7 +391,7 @@ class VinylService
                         'name' => $title,
                         'duration' => $duration,
                         'duration_seconds' => $durationSeconds,
-                        'youtube_url' => null, // Preparado para futuras atualizações
+                        'youtube_url' => $youtubeUrl,
                         'extra_info' => $extraInfoJson,
                     ]
                 );

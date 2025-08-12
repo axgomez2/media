@@ -4,14 +4,81 @@
 <meta name="vinyl-index-url" content="{{ route('admin.vinyls.index') }}">
 <meta name="complete-vinyl-url" content="{{ route('admin.vinyls.complete', ':id') }}">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<div
-    x-data="{
+
+<script>
+document.addEventListener('alpine:init', () => {
+    Alpine.data('vinylCreateManager', () => ({
         loading: false,
+        showYouTubeModal: false,
+        youtubeResults: [],
+        activeTrackIndex: null,
+        isLoading: false,
+        tracks: [],
+
+        init() {
+            // Listener para o evento de busca no YouTube
+            this.$el.addEventListener('search-youtube', (event) => {
+                const { trackName, artistName, trackIndex } = event.detail;
+                this.searchYouTube(trackName, artistName, trackIndex);
+            });
+        },
+
         search() {
             this.loading = true;
             document.getElementById('search-form').submit();
+        },
+
+        async searchYouTube(trackName, artistName, trackIndex) {
+            this.activeTrackIndex = trackIndex;
+            this.isLoading = true;
+            const query = `${artistName} ${trackName}`;
+
+            try {
+                const response = await fetch('{{ route('youtube.search') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ query })
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                this.youtubeResults = data;
+                this.showYouTubeModal = true;
+            } catch (error) {
+                console.error('Erro ao pesquisar no YouTube:', error);
+                alert('Erro ao pesquisar no YouTube. Tente novamente.');
+            } finally {
+                this.isLoading = false;
+            }
+        },
+
+        selectYouTubeVideo(video) {
+            if (this.activeTrackIndex !== null) {
+                // Encontrar o input de YouTube URL correspondente
+                const youtubeInput = document.querySelector(`input[name="tracks[${this.activeTrackIndex}][youtube_url]"]`);
+                if (youtubeInput) {
+                    youtubeInput.value = `https://www.youtube.com/watch?v=${video.id.videoId}`;
+                }
+            }
+            this.closeYouTubeModal();
+        },
+
+        closeYouTubeModal() {
+            this.showYouTubeModal = false;
+            this.youtubeResults = [];
+            this.activeTrackIndex = null;
         }
-    }" 
+    }));
+});
+</script>
+
+<div
+    x-data="vinylCreateManager"
     class="p-4">
 
 
@@ -39,7 +106,42 @@
             @endif
         </div>
     </div>
-    <!-- Nenhum modal é necessário, estamos redirecionando diretamente -->
+
+    <!-- Modal para resultados do YouTube -->
+    <div x-show="showYouTubeModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;" x-cloak>
+        <div class="flex items-center justify-center min-h-screen px-4 text-center">
+            <div x-show="showYouTubeModal" @click="closeYouTubeModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900 bg-opacity-50 transition-opacity"></div>
+
+            <div x-show="showYouTubeModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                class="relative inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                                Selecionar Vídeo do YouTube
+                            </h3>
+                            <div class="mt-4 space-y-3 max-h-96 overflow-y-auto">
+                                <template x-for="result in youtubeResults" :key="result.id.videoId">
+                                    <div class="p-3 hover:bg-gray-100 rounded-lg cursor-pointer flex items-start space-x-4" @click="selectYouTubeVideo(result)">
+                                        <img :src="result.snippet.thumbnails.default.url" class="w-24 h-24 object-cover rounded-md">
+                                        <div>
+                                            <h4 class="font-semibold text-gray-800" x-text="result.snippet.title"></h4>
+                                            <p class="text-sm text-gray-500" x-text="result.snippet.channelTitle"></p>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" @click="closeYouTubeModal" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </x-admin-layout>
 @push('scripts')
@@ -47,37 +149,20 @@
 // Variável global para armazenar o ID do vinyl salvo
 let savedVinylId = null;
 
-// Função para testar o modal
-function testModal() {
-    // Definir o conteúdo do modal
-    document.getElementById('modal-title').textContent = 'Teste do Modal';
-    document.getElementById('modal-message').textContent = 'Este é um teste do modal para verificar se está funcionando';
-    
-    // Mostrar botões de sucesso
-    document.getElementById('success-buttons').classList.remove('hidden');
-    document.getElementById('exists-button').classList.add('hidden');
-    document.getElementById('error-button').classList.add('hidden');
-    
-    // Configurar URL de completar cadastro
-    }
-    
-    if (!document.querySelector('meta[name="complete-vinyl-url"]')) {
-        const completeUrl = document.createElement('meta');
-        completeUrl.name = 'complete-vinyl-url';
 // Função para salvar o disco com JavaScript puro
 function saveVinyl(releaseId) {
     // Pegar o botão que foi clicado
     const saveButton = event.target.closest('button');
-    
+
     // Mostrar loading no botão
     if (saveButton) {
         saveButton.disabled = true;
         saveButton.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Salvando...';
     }
-    
+
     // Obter o CSRF token do Laravel
     const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-    
+
     // Fazer requisição para salvar o disco
     fetch('{{ route("admin.vinyls.store") }}', {
         method: 'POST',
@@ -98,7 +183,7 @@ function saveVinyl(releaseId) {
     })
     .then(data => {
         console.log('Resposta:', data);
-        
+
         // Dependendo do status da resposta, fazer uma ação diferente
         if (data.status === 'success' && data.vinyl_id) {
             // Redirecionar para a página de completar o cadastro
@@ -125,7 +210,7 @@ function saveVinyl(releaseId) {
         // Tratar erros de requisição
         console.error('Erro:', error);
         alert(error.message || 'Ocorreu um erro ao salvar o disco.');
-        
+
         // Restaurar o botão
         if (saveButton) {
             saveButton.disabled = false;

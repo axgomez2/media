@@ -20,6 +20,22 @@ class NewsTopicController extends Controller
     }
 
     /**
+     * API endpoint for topics (used by JavaScript)
+     */
+    public function api()
+    {
+        $topics = NewsTopic::active()
+            ->orderBy('name')
+            ->get(['id', 'name', 'color', 'slug'])
+            ->map(function ($topic) {
+                $topic->news_count = $topic->news()->count();
+                return $topic;
+            });
+
+        return response()->json($topics);
+    }
+
+    /**
      * Show the form for creating a new resource.
      */
     public function create()
@@ -37,7 +53,7 @@ class NewsTopicController extends Controller
             'slug' => ['nullable', 'string', 'max:255', 'unique:news_topics,slug'],
             'description' => ['nullable', 'string', 'max:500'],
             'color' => ['nullable', 'string', 'max:7'],
-            'active' => ['boolean']
+            'is_active' => ['nullable', 'boolean']
         ]);
 
         // Gerar slug se não fornecido
@@ -51,7 +67,7 @@ class NewsTopicController extends Controller
                 'slug' => $validated['slug'],
                 'description' => $validated['description'],
                 'color' => $validated['color'] ?? '#3B82F6',
-                'active' => $validated['active'] ?? true
+                'is_active' => isset($validated['is_active']) ? (bool)$validated['is_active'] : true
             ]);
 
             return redirect()
@@ -83,7 +99,7 @@ class NewsTopicController extends Controller
             'slug' => ['nullable', 'string', 'max:255', 'unique:news_topics,slug,' . $topic->id],
             'description' => ['nullable', 'string', 'max:500'],
             'color' => ['nullable', 'string', 'max:7'],
-            'active' => ['boolean']
+            'is_active' => ['nullable', 'boolean']
         ]);
 
         // Gerar slug se não fornecido
@@ -97,7 +113,7 @@ class NewsTopicController extends Controller
                 'slug' => $validated['slug'],
                 'description' => $validated['description'],
                 'color' => $validated['color'] ?? $topic->color,
-                'active' => $validated['active'] ?? $topic->active
+                'is_active' => isset($validated['is_active']) ? (bool)$validated['is_active'] : false
             ]);
 
             return redirect()

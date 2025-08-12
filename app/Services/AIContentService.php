@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
 
 class AIContentService
 {
-    private const SUPPORTED_TYPES = ['title', 'excerpt', 'content', 'keywords'];
+    private const SUPPORTED_TYPES = ['title', 'excerpt', 'content', 'keywords', 'meta_description', 'meta_keywords'];
     private const API_TIMEOUT = 30;
     private const RATE_LIMIT_KEY = 'ai_content_requests';
     private const RATE_LIMIT_MAX = 100; // requests per hour
@@ -61,7 +61,11 @@ class AIContentService
 
             'content' => "Escreva um artigo completo e bem estruturado sobre: {$userPrompt}. O artigo deve ter introdução, desenvolvimento com subtítulos e conclusão. Use linguagem clara e profissional, com parágrafos bem organizados.",
 
-            'keywords' => "Liste 8-10 palavras-chave relevantes para SEO sobre o tema: {$userPrompt}. Separe as palavras-chave por vírgulas. Inclua tanto palavras-chave principais quanto de cauda longa."
+            'keywords' => "Liste 8-10 palavras-chave relevantes para SEO sobre o tema: {$userPrompt}. Separe as palavras-chave por vírgulas. Inclua tanto palavras-chave principais quanto de cauda longa.",
+
+            'meta_description' => "Escreva uma meta descrição otimizada para SEO sobre: {$userPrompt}. A descrição deve ter entre 150-160 caracteres, ser atrativa para cliques e incluir palavras-chave relevantes.",
+
+            'meta_keywords' => "Liste 5-8 palavras-chave específicas para meta keywords sobre: {$userPrompt}. Separe por vírgulas. Foque em termos que as pessoas realmente pesquisam."
         ];
 
         return $templates[$type] ?? $templates['content'];
@@ -125,8 +129,18 @@ class AIContentService
                 break;
 
             case 'keywords':
+            case 'meta_keywords':
                 // Ensure comma-separated format
                 $content = str_replace([';', '|'], ',', $content);
+                // Remove extra spaces around commas
+                $content = preg_replace('/\s*,\s*/', ', ', $content);
+                break;
+
+            case 'meta_description':
+                // Ensure it's within character limit
+                if (strlen($content) > 160) {
+                    $content = substr($content, 0, 157) . '...';
+                }
                 break;
         }
 
@@ -185,7 +199,9 @@ class AIContentService
             'title' => 'Título gerado automaticamente - Edite conforme necessário',
             'excerpt' => 'Resumo gerado automaticamente - Edite este texto para descrever melhor o conteúdo do seu artigo.',
             'content' => "# Conteúdo Gerado Automaticamente\n\nEste é um conteúdo de exemplo. Edite este texto para criar seu artigo.\n\n## Introdução\n\nAdicione sua introdução aqui.\n\n## Desenvolvimento\n\nDescreva o conteúdo principal do seu artigo.\n\n## Conclusão\n\nFinalize com suas considerações finais.",
-            'keywords' => 'notícias, blog, artigo, conteúdo, informação'
+            'keywords' => 'notícias, blog, artigo, conteúdo, informação',
+            'meta_description' => 'Descrição otimizada para SEO - Edite este texto para descrever o conteúdo da página.',
+            'meta_keywords' => 'notícias, blog, artigo, seo, conteúdo'
         ];
 
         return $fallbacks[$type] ?? $fallbacks['content'];

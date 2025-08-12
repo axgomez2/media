@@ -3,6 +3,29 @@
     <div class="flex justify-between items-center mb-6">
         <div>
             <h1 class="text-2xl font-bold text-zinc-900">Notícias</h1>
+
+            <!-- Breadcrumbs -->
+            <nav class="flex mt-2" aria-label="Breadcrumb">
+                <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                    <li class="inline-flex items-center">
+                        <a href="{{ route('admin.dashboard') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600">
+                            <svg class="w-3 h-3 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
+                            </svg>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li aria-current="page">
+                        <div class="flex items-center">
+                            <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                            </svg>
+                            <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Notícias</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+
             <p class="text-zinc-600 mt-1">Gerencie artigos e conteúdo do blog</p>
         </div>
         <a href="{{ route('admin.news.create') }}"
@@ -128,7 +151,14 @@
                            name="search"
                            value="{{ $search }}"
                            placeholder="Buscar por título, conteúdo ou excerpt..."
-                           class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                           class="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                    <!-- Search Loading Indicator -->
+                    <div id="search-indicator" class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none" style="display: none;">
+                        <svg class="animate-spin h-4 w-4 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -193,6 +223,11 @@
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
                     </svg>
+                    <!-- Filter Loading Indicator -->
+                    <svg id="filter-indicator" class="animate-spin h-4 w-4 mr-2" style="display: none;" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
                     Filtrar
                 </button>
             </div>
@@ -215,7 +250,7 @@
     @if($news->count() > 0)
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-6">
             @foreach($news as $article)
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow duration-200" data-news-id="{{ $article->id }}">
                     <!-- Featured Image -->
                     <div class="aspect-w-16 aspect-h-9 bg-gray-200">
                         @if($article->featured_image_url)
@@ -516,96 +551,13 @@
     </div>
 
     @push('scripts')
-    <script>
-        // Delete confirmation functionality
-        function confirmDelete(newsId, newsTitle) {
-            document.getElementById('deleteTitle').textContent = newsTitle;
-            document.getElementById('deleteForm').action = `/admin/news/${newsId}`;
-            document.getElementById('deleteModal').classList.remove('hidden');
-        }
+    <script type="module">
+        import NewsInteractiveManager from '{{ asset('js/admin/news-interactive.js') }}';
 
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.add('hidden');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('deleteModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeDeleteModal();
-            }
+        // Initialize news interactive features
+        document.addEventListener('DOMContentLoaded', () => {
+            window.newsManager = new NewsInteractiveManager();
         });
-
-        // Real-time search functionality with debounce
-        let searchTimeout;
-        const searchInput = document.querySelector('input[name="search"]');
-
-        if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    // Auto-submit form after 500ms of no typing
-                    if (this.value.length >= 3 || this.value.length === 0) {
-                        this.form.submit();
-                    }
-                }, 500);
-            });
-        }
-
-        // Auto-submit form when filters change
-        const filterSelects = document.querySelectorAll('select[name="status"], select[name="topic"], select[name="featured"], select[name="sort"], select[name="direction"]');
-
-        filterSelects.forEach(select => {
-            select.addEventListener('change', function() {
-                this.form.submit();
-            });
-        });
-
-        // Toast notifications auto-hide
-        document.addEventListener('DOMContentLoaded', function() {
-            const toasts = document.querySelectorAll('.fixed.top-4.right-4');
-
-            toasts.forEach(toast => {
-                setTimeout(() => {
-                    toast.style.opacity = '0';
-                    toast.style.transform = 'translateX(100%)';
-                    setTimeout(() => {
-                        toast.remove();
-                    }, 300);
-                }, 5000);
-            });
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl/Cmd + K to focus search
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                searchInput?.focus();
-            }
-
-            // Escape to close modal
-            if (e.key === 'Escape') {
-                closeDeleteModal();
-            }
-        });
-
-        // Add loading state to filter form
-        const filterForm = document.querySelector('form');
-        if (filterForm) {
-            filterForm.addEventListener('submit', function() {
-                const submitButton = this.querySelector('button[type="submit"]');
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = `
-                        <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Filtrando...
-                    `;
-                }
-            });
-        }
     </script>
     @endpush
 </x-admin-layout>

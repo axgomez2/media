@@ -203,6 +203,11 @@ class UpdateNewsRequest extends FormRequest
                 if (empty($this->input('meta_description'))) {
                     $validator->errors()->add('meta_description', 'A meta descrição é obrigatória para artigos publicados.');
                 }
+
+                // Ensure meta description has minimum length for published articles
+                if (!empty($this->input('meta_description')) && strlen($this->input('meta_description')) < 50) {
+                    $validator->errors()->add('meta_description', 'A meta descrição deve ter pelo menos 50 caracteres.');
+                }
             }
         });
     }

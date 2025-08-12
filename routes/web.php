@@ -35,6 +35,10 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::post('/youtube/search', [YouTubeController::class, 'search'])->name('youtube.search');
+
+// Log de erros do cliente (sem middleware para permitir logs de erro)
+Route::post('/admin/log-client-error', [\App\Http\Controllers\Admin\ClientErrorLogController::class, 'logError'])->name('admin.log_client_error');
+
 // Rotas administrativas
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // Dashboard administrativo
@@ -141,9 +145,6 @@ Route::prefix('relatorios')->group(function () {
         Route::put('/clientes/{id}/status', [\App\Http\Controllers\Admin\ClientReportsController::class, 'updateStatus'])->name('admin.reports.clients.update_status');
         Route::delete('/clientes/cache', [\App\Http\Controllers\Admin\ClientReportsController::class, 'clearCache'])->name('admin.reports.clients.clear_cache');
     });
-
-    // Log de erros do cliente
-    Route::post('/log-client-error', [\App\Http\Controllers\Admin\ClientErrorLogController::class, 'logError'])->name('admin.log_client_error');
 
     // Relatórios de carrinhos
     Route::get('/carrinhos', [ReportsController::class, 'carts'])->name('admin.reports.carts');
@@ -311,6 +312,7 @@ Route::prefix('news')->name('admin.news.')->group(function () {
 // Gerenciamento de Tópicos de Notícias
 Route::prefix('news-topics')->name('admin.news-topics.')->group(function () {
     Route::get('/', [NewsTopicController::class, 'index'])->name('index');
+    Route::get('/api', [NewsTopicController::class, 'api'])->name('api');
     Route::get('/create', [NewsTopicController::class, 'create'])->name('create');
     Route::post('/', [NewsTopicController::class, 'store'])->name('store');
     Route::get('/{topic}/edit', [NewsTopicController::class, 'edit'])->name('edit');

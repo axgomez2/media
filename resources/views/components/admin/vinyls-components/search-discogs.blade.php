@@ -1,6 +1,6 @@
 @props(['query'])
 
-<form action="{{ route('admin.vinyls.create') }}" method="GET" @submit="startSearch()">
+<form action="{{ route('admin.vinyls.create') }}" method="GET" id="search-form" @submit="search()">
             <div class="flex flex-wrap md:flex-nowrap items-center gap-3">
                 <div class="w-full">
                     <input type="text"

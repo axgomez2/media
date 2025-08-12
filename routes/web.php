@@ -239,9 +239,10 @@ Route::prefix('orders')->name('admin.orders.')->group(function () {
 });
 
 // Tracks (Faixas de áudio)
-// Route::resource('tracks', TrackController::class, ['as' => 'admin']); // REMOVIDO PARA USAR ROTAS MANUAIS
-Route::post('vinyls/{vinyl}/tracks', [TrackController::class, 'storeForVinyl'])->name('admin.vinyls.tracks.store');
-Route::put('vinyls/{vinyl}/tracks/reorder', [TrackController::class, 'reorderTracks'])->name('admin.vinyls.tracks.reorder');
+Route::post('vinyls/{vinyl}/tracks', [TrackController::class, 'store'])->name('admin.vinyls.tracks.store');
+Route::put('vinyls/{vinyl}/tracks/reorder', [TrackController::class, 'reorder'])->name('admin.vinyls.tracks.reorder');
+Route::put('tracks/{track}', [TrackController::class, 'update'])->name('admin.tracks.update');
+Route::delete('tracks/{track}', [TrackController::class, 'destroy'])->name('admin.tracks.destroy');
 
 // Categorias, Estilos e Lojas
 Route::resource('categories', CatStyleShopController::class, ['as' => 'admin'])->parameters(['categories' => 'category']);
@@ -324,17 +325,7 @@ Route::prefix('news-topics')->name('admin.news-topics.')->group(function () {
 
 // Rotas acessíveis apenas para usuários autenticados (exceto clientes)
 Route::middleware(['auth', 'admin'])->group(function () {
-    // Rotas para Tracks
-    Route::prefix('tracks')->name('tracks.')->group(function () {
-        Route::delete('/{track}', [TrackController::class, 'destroy'])->name('destroy');
-    });
-});
-
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    // Rotas para Tracks
-    Route::prefix('tracks')->name('tracks.')->group(function () {
-        Route::delete('/{track}', [TrackController::class, 'destroy'])->name('destroy');
-    });
+    // Additional admin routes can be added here if needed
 });
 
 Route::get('/media-externa/{path}', [ImageController::class, 'show'])->where('path', '.*')->name('media.show');

@@ -752,6 +752,13 @@ class VinylController extends Controller
                 $vinylSec = VinylSec::create($vinylSecData);
             }
 
+            // Atualizar o campo description do VinylMaster com as notas editadas
+            if ($request->has('notes')) {
+                $vinylMaster->update([
+                    'description' => $validatedData['notes']
+                ]);
+            }
+
             // Sincroniza as categorias
             if ($request->has('category_ids')) {
                 $vinylMaster->categories()->sync($request->input('category_ids'));

@@ -34,6 +34,11 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+// Two Factor Authentication routes
+Route::get('/two-factor/verify', [LoginController::class, 'showTwoFactorForm'])->name('two-factor.verify');
+Route::post('/two-factor/verify', [\App\Http\Controllers\Admin\TwoFactorController::class, 'verify'])->name('two-factor.verify.post');
+Route::post('/two-factor/recovery', [\App\Http\Controllers\Admin\TwoFactorController::class, 'verifyRecovery'])->name('two-factor.recovery');
+
 Route::post('/youtube/search', [YouTubeController::class, 'search'])->name('youtube.search');
 
 // Log de erros do cliente (sem middleware para permitir logs de erro)
@@ -43,6 +48,15 @@ Route::post('/admin/log-client-error', [\App\Http\Controllers\Admin\ClientErrorL
 Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // Dashboard administrativo
     Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+    // Two Factor Authentication management
+    Route::prefix('two-factor')->name('admin.two-factor.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\TwoFactorController::class, 'show'])->name('show');
+        Route::post('/enable', [\App\Http\Controllers\Admin\TwoFactorController::class, 'enable'])->name('enable');
+        Route::post('/disable', [\App\Http\Controllers\Admin\TwoFactorController::class, 'disable'])->name('disable');
+        Route::get('/recovery-codes', [\App\Http\Controllers\Admin\TwoFactorController::class, 'recoveryCodes'])->name('recovery-codes');
+        Route::post('/recovery-codes/regenerate', [\App\Http\Controllers\Admin\TwoFactorController::class, 'regenerateRecoveryCodes'])->name('recovery-codes.regenerate');
+    });
 
     // User Creation
     Route::post('/users', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store');

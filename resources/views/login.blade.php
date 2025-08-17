@@ -1,4 +1,4 @@
-@extends('layouts.app') {{-- ou outro layout de sua escolha --}}
+@extends('layouts.auth')
 
 @section('content')
 <div class="max-w-md mx-auto mt-20 bg-white p-8 rounded shadow">

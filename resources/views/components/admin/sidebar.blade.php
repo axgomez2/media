@@ -22,6 +22,21 @@
               </a>
            </li>
            <li>
+              <a href="{{ route('admin.two-factor.show') }}" class="flex items-center p-2 text-gray-900 rounded-lg  hover:bg-gray-100 {{ request()->routeIs('admin.two-factor.*') ? 'bg-zinc-200' : '' }} group">
+                 <svg class="w-5 h-5 text-gray-500 transition duration-75 group-hover:text-gray-900" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                 </svg>
+                 <span class="flex-1 ms-3 whitespace-nowrap">Segurança (2FA)</span>
+                 @auth
+                    @if(auth()->user()->hasTwoFactorEnabled())
+                       <span class="inline-flex items-center justify-center px-2 ms-3 text-sm font-medium text-white bg-green-500 rounded-full">Ativo</span>
+                    @else
+                       <span class="inline-flex items-center justify-center px-2 ms-3 text-sm font-medium text-gray-800 bg-yellow-100 rounded-full">Inativo</span>
+                    @endif
+                 @endauth
+              </a>
+           </li>
+           <li>
               <a href="{{ route('admin.orders.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg  hover:bg-gray-100  group {{ request()->routeIs('admin.orders.*') ? 'bg-zinc-200' : '' }}">
 
                  <span class="flex-1 ms-3 whitespace-nowrap">Pedidos Online</span>

@@ -272,12 +272,13 @@ Route::resource('shops', CatStyleShopController::class, ['as' => 'admin'])->para
 // Removendo este resource já que temos uma definição manual para fornecedores acima
 // Route::resource('suppliers', SupplierController::class);
 
-// Rotas de API para funcionalidades de IA (comentado - controller não existe)
-// Route::prefix('api')->group(function () {
-//     // Geração de descrição e tradução com IA
-//     Route::post('/vinyls/generate-description', [VinylAIController::class, 'generateDescription']);
-//     Route::post('/vinyls/translate-description', [VinylAIController::class, 'translateDescription']);
-// });
+// Rotas de API para funcionalidades de IA
+Route::prefix('api')->group(function () {
+    // Geração de descrição e tradução com IA
+    Route::post('/vinyls/generate-description', [\App\Http\Controllers\Admin\AIController::class, 'generateDescription'])->name('admin.ai.generate-description');
+    Route::post('/vinyls/translate-description', [\App\Http\Controllers\Admin\AIController::class, 'translateDescription'])->name('admin.ai.translate-description');
+    Route::get('/ai/status', [\App\Http\Controllers\Admin\AIController::class, 'checkStatus'])->name('admin.ai.status');
+});
 
 // Media e Cover Status - Ambos já estão definidos acima com rotas individuais
 // Removido Route::resource para evitar conflitos de nomes de rotas

@@ -245,7 +245,17 @@
             <!-- Notes -->
             <div class="mb-6">
                 <div class="flex justify-between items-center mb-2">
-                    <label for="notes" class="text-sm font-medium text-gray-900">Notas e descrição:</label>
+                    <label for="notes" class="text-sm font-medium text-gray-900">Notas internas:</label>
+                </div>
+                <div class="relative">
+                    <textarea id="notes" name="notes" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500" placeholder="Notas internas para controle da loja...">{{ old('notes', $vinylMaster->vinylSec->notes ?? '') }}</textarea>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <label for="description" class="text-sm font-medium text-gray-900">Descrição do produto:</label>
                     <div class="space-x-2">
                         <button type="button" id="generate-description" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-1.5">
                             <i class="fas fa-magic mr-1"></i> Gerar descrição IA
@@ -256,8 +266,8 @@
                     </div>
                 </div>
                 <div class="relative">
-                    <textarea id="notes" name="notes" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500">{{ old('notes', $vinylMaster->vinylSec->notes ?? '') }}</textarea>
-                    <div id="ai-loading" class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center hidden">
+                    <textarea id="description" name="description" rows="6" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500" placeholder="Descrição detalhada do produto que será exibida na loja...">{{ old('description', $vinylMaster->description ?? '') }}</textarea>
+                    <div id="ai-loading" class="absolute inset-0 bg-white bg-opacity-75 items-center justify-center hidden">
                         <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
                     </div>
                 </div>
@@ -608,12 +618,113 @@ document.addEventListener('alpine:init', () => {
                 this.activeUrlInput.dispatchEvent(new Event('input'));
             }
             this.showYouTubeModal = false;
+        },
+
+        // Funções para IA
+        async generateDescription() {
+            const descriptionField = document.getElementById('description');
+            const loadingDiv = document.getElementById('ai-loading');
+            
+            if (!descriptionField) return;
+            
+            try {
+                loadingDiv.classList.remove('hidden');
+                loadingDiv.classList.add('flex');
+                
+                const response = await fetch('{{ route("admin.ai.generate-description") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        vinyl_id: {{ $vinylMaster->id }}
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    descriptionField.value = data.description;
+                } else {
+                    alert(data.message || 'Erro ao gerar descrição');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao conectar com o serviço de IA');
+            } finally {
+                loadingDiv.classList.add('hidden');
+                loadingDiv.classList.remove('flex');
+            }
+        },
+
+        async translateDescription() {
+            const descriptionField = document.getElementById('description');
+            const loadingDiv = document.getElementById('ai-loading');
+            
+            if (!descriptionField || !descriptionField.value.trim()) {
+                alert('Digite ou cole um texto para traduzir');
+                return;
+            }
+            
+            try {
+                loadingDiv.classList.remove('hidden');
+                loadingDiv.classList.add('flex');
+                
+                const response = await fetch('{{ route("admin.ai.translate-description") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        text: descriptionField.value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    descriptionField.value = data.translated_text;
+                } else {
+                    alert(data.message || 'Erro ao traduzir texto');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao conectar com o serviço de IA');
+            } finally {
+                loadingDiv.classList.add('hidden');
+                loadingDiv.classList.remove('flex');
+            }
         }
     }));
 });
 
-// Event listener para o formulário de categoria quando for enviado
+// Event listeners para os botões de IA
 document.addEventListener('DOMContentLoaded', function() {
+    const generateBtn = document.getElementById('generate-description');
+    const translateBtn = document.getElementById('translate-description');
+    
+    if (generateBtn) {
+        generateBtn.addEventListener('click', function() {
+            // Acessar a instância do Alpine diretamente
+            const alpineData = Alpine.$data(document.querySelector('[x-data="vinylCompleteForm"]'));
+            if (alpineData && alpineData.generateDescription) {
+                alpineData.generateDescription();
+            }
+        });
+    }
+    
+    if (translateBtn) {
+        translateBtn.addEventListener('click', function() {
+            // Acessar a instância do Alpine diretamente
+            const alpineData = Alpine.$data(document.querySelector('[x-data="vinylCompleteForm"]'));
+            if (alpineData && alpineData.translateDescription) {
+                alpineData.translateDescription();
+            }
+        });
+    }
+
     const addCategoryForm = document.getElementById('addCategoryForm');
 
     if (addCategoryForm) {

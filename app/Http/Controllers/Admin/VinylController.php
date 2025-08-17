@@ -686,6 +686,7 @@ class VinylController extends Controller
             'speed'                => 'nullable|string',
             'edition'              => 'nullable|string',
             'notes'                => 'nullable|string',
+            'description'          => 'nullable|string',
             'is_new'               => 'required|boolean',
             'buy_price'            => 'nullable|numeric|min:0',
             'promotional_price'    => 'nullable|numeric|min:0',
@@ -752,10 +753,21 @@ class VinylController extends Controller
                 $vinylSec = VinylSec::create($vinylSecData);
             }
 
-            // Atualizar o campo description do VinylMaster com as notas editadas
-            if ($request->has('notes')) {
+            // Atualizar o campo description do VinylMaster
+            if ($request->has('description')) {
                 $vinylMaster->update([
-                    'description' => $validatedData['notes']
+                    'description' => $validatedData['description']
+                ]);
+            }
+
+            // Atualizar também a descrição do produto associado
+            $product = Product::where('productable_id', $vinylMaster->id)
+                ->where('productable_type', 'App\\Models\\VinylMaster')
+                ->first();
+            
+            if ($product && $request->has('description')) {
+                $product->update([
+                    'description' => $validatedData['description']
                 ]);
             }
 

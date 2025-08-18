@@ -17,6 +17,22 @@ class AIDescriptionService
     }
 
     /**
+     * Verifica se o serviço de IA está disponível
+     *
+     * @return bool
+     */
+    public function isAvailable(): bool
+    {
+        try {
+            $response = Http::timeout(5)->get("{$this->ollamaUrl}/api/tags");
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::info('Ollama não disponível, usando fallback: ' . $e->getMessage());
+            return false; // Sempre retorna false para usar fallback
+        }
+    }
+
+    /**
      * Gera uma descrição de produto baseada nas informações do vinil
      *
      * @param array $vinylData Dados do vinil
@@ -296,18 +312,4 @@ Descrição:";
         return $description;
     }
 
-    /**
-     * Verifica se o serviço Ollama está disponível
-     *
-     * @return bool
-     */
-    public function isAvailable(): bool
-    {
-        try {
-            $response = Http::timeout(5)->get("{$this->ollamaUrl}/api/tags");
-            return $response->successful();
-        } catch (\Exception $e) {
-            return false;
-        }
-    }
 }

@@ -33,14 +33,6 @@ class AIController extends Controller
             $vinylId = $request->input('vinyl_id');
             $vinyl = VinylMaster::with(['artists', 'recordLabel', 'styles', 'tracks'])->findOrFail($vinylId);
 
-            // Verificar se o serviço está disponível
-            if (!$this->aiService->isAvailable()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Serviço de IA não está disponível. Verifique se o Ollama está rodando.'
-                ], 503);
-            }
-
             // Preparar dados para a IA
             $vinylData = [
                 'artists' => $vinyl->artists->pluck('name')->join(', '),
@@ -91,14 +83,6 @@ class AIController extends Controller
             ]);
 
             $text = $request->input('text');
-
-            // Verificar se o serviço está disponível
-            if (!$this->aiService->isAvailable()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Serviço de IA não está disponível. Verifique se o Ollama está rodando.'
-                ], 503);
-            }
 
             $translatedText = $this->aiService->translateToPortuguese($text);
 

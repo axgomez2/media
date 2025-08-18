@@ -638,7 +638,7 @@ document.addEventListener('alpine:init', () => {
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
-                        vinyl_id: {{ $vinylMaster->id }}
+                        vinyl_id: {{ $vinylMaster->id ?? 'null' }}
                     })
                 });
                 

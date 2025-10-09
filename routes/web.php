@@ -160,6 +160,7 @@ Route::prefix('relatorios')->group(function () {
         Route::get('/clientes/export', [\App\Http\Controllers\Admin\ClientReportsController::class, 'export'])->name('admin.reports.clients.export');
         Route::get('/clientes/{id}', [\App\Http\Controllers\Admin\ClientReportsController::class, 'show'])->name('admin.reports.clients.show');
         Route::put('/clientes/{id}/status', [\App\Http\Controllers\Admin\ClientReportsController::class, 'updateStatus'])->name('admin.reports.clients.update_status');
+        Route::post('/clientes/{id}/send-abandoned-cart-email', [\App\Http\Controllers\Admin\ClientReportsController::class, 'sendAbandonedCartEmail'])->name('admin.reports.clients.send_abandoned_cart_email');
         Route::delete('/clientes/cache', [\App\Http\Controllers\Admin\ClientReportsController::class, 'clearCache'])->name('admin.reports.clients.clear_cache');
     });
 

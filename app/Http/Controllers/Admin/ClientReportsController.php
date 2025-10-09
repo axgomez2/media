@@ -162,9 +162,9 @@ class ClientReportsController extends Controller
                 'orders' => function ($query) {
                     $query->select('id', 'user_id', 'order_number', 'total', 'status', 'created_at', 'updated_at')
                           ->with(['items' => function ($itemQuery) {
-                              $itemQuery->select('id', 'order_id', 'product_id', 'quantity', 'price')
+                              $itemQuery->select('id', 'order_id', 'product_id', 'quantity', 'unit_price', 'total_price', 'product_name')
                                        ->with(['product' => function ($productQuery) {
-                                           $productQuery->select('id', 'title', 'productable_type', 'productable_id');
+                                           $productQuery->select('id', 'name', 'productable_type', 'productable_id');
                                        }]);
                           }])
                           ->orderBy('created_at', 'desc')
@@ -628,5 +628,48 @@ class ClientReportsController extends Controller
 
         // Store back in cache for 1 hour
         Cache::put('recent_client_accesses', $recentAccesses, 3600);
+    }
+
+    /**
+     * Envia email de lembrete de carrinho abandonado
+     */
+    public function sendAbandonedCartEmail(Request $request, $id)
+    {
+        try {
+            $client = ClientUser::with(['cart.products.productable.artists', 'cart.products.productable.vinylSec'])
+                ->findOrFail($id);
+
+            // Verifica se o cliente tem carrinho com itens
+            if (!$client->cart || $client->cart->products->count() === 0) {
+                return back()->with('error', 'Este cliente não possui itens no carrinho.');
+            }
+
+            // Verifica se o carrinho foi abandonado (mais de 7 dias sem atualização)
+            if ($client->cart->updated_at > now()->subDays(7)) {
+                return back()->with('warning', 'O carrinho deste cliente foi atualizado recentemente. Considere aguardar mais alguns dias antes de enviar o lembrete.');
+            }
+
+            // Envia o email
+            \Mail::to($client->email)->send(new \App\Mail\AbandonedCartReminder($client));
+
+            // Log da ação
+            ClientReportsLogger::logAction('abandoned_cart_email_sent', [
+                'client_id' => $id,
+                'client_email' => $client->email,
+                'cart_items_count' => $client->cart->products->count(),
+                'cart_total' => $client->cart_total
+            ]);
+
+            return back()->with('success', 'Email de carrinho abandonado enviado com sucesso para ' . $client->email);
+
+        } catch (\Exception $e) {
+            ClientReportsLogger::logError('send_abandoned_cart_email', [
+                'client_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Erro ao enviar email: ' . $e->getMessage());
+        }
     }
 }

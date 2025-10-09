@@ -31,11 +31,6 @@
                         R$ {{ number_format($product->price, 2, ',', '.') }}
                     </p>
                     
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        <a href="{{ route('admin.products.edit', $product->id) }}" class="px-3 py-1 text-sm font-medium leading-5 text-white transition-colors duration-150 bg-blue-600 border border-transparent rounded-md active:bg-blue-600 hover:bg-blue-700 focus:outline-none focus:shadow-outline-blue">
-                            Editar Produto
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>

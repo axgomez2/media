@@ -273,87 +273,34 @@
             </h3>
 
             @if($client->wishlists->count() > 0)
-                <div class="grid grid-cols-2 gap-3 max-h-80 overflow-y-auto">
-                    @foreach($client->wishlists->take(8) as $wishlistItem)
+                <div class="space-y-2 max-h-80 overflow-y-auto pr-2 border-t pt-4 mt-4">
+                    @foreach($client->wishlists as $wishlistItem)
                         @if($wishlistItem->product && $wishlistItem->product->productable)
                             @php
                                 $vinyl = $wishlistItem->product->productable;
-                                $imageUrl = vinyl_image_url($vinyl->cover_image);
                                 $artists = $vinyl->artists->pluck('name')->join(', ');
                             @endphp
-                            <div class="group relative bg-white border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow duration-200">
-                                <!-- Imagem do disco -->
-                                <div class="aspect-square mb-2 overflow-hidden rounded-lg bg-gray-100">
-                                    <img src="{{ $imageUrl }}"
-                                         alt="{{ $vinyl->title }}"
-                                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                         loading="lazy"
-                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'">
-                                </div>
-
-                                <!-- Informações do disco -->
-                                <div class="space-y-1">
-                                    <h4 class="text-sm font-medium text-gray-900 line-clamp-2 leading-tight">
-                                        {{ $vinyl->title }}
-                                    </h4>
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100">
+                                <div class="flex-grow min-w-0">
+                                    <p class="font-semibold text-sm text-gray-800 truncate" title="{{ $vinyl->title }}">{{ $vinyl->title }}</p>
                                     @if($artists)
-                                        <p class="text-xs text-gray-600 line-clamp-1">
-                                            {{ $artists }}
+                                        <p class="text-xs text-gray-600 truncate" title="{{ $artists }}">{{ $artists }}</p>
+                                    @endif
+                                </div>
+                                <div class="text-right flex-shrink-0 ml-4">
+                                    @if($vinyl->vinylSec && $vinyl->vinylSec->price)
+                                        <p class="text-sm font-medium text-green-700">
+                                            R$ {{ number_format($vinyl->vinylSec->price, 2, ',', '.') }}
                                         </p>
                                     @endif
-                                    <div class="flex items-center justify-between">
-                                        <p class="text-xs text-gray-500">
-                                            {{ $wishlistItem->created_at->format('d/m/Y') }}
-                                        </p>
-                                        @if($vinyl->vinylSec && $vinyl->vinylSec->price)
-                                            <p class="text-xs font-medium text-green-600">
-                                                R$ {{ number_format($vinyl->vinylSec->price, 2, ',', '.') }}
-                                            </p>
-                                        @endif
-                                    </div>
-                                </div>
-
-                                <!-- Badge de disponibilidade -->
-                                @if($vinyl->vinylSec && $vinyl->vinylSec->in_stock && $vinyl->vinylSec->stock > 0)
-                                    <div class="absolute top-2 right-2">
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                            <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 8 8">
-                                                <circle cx="4" cy="4" r="3"/>
-                                            </svg>
-                                            Disponível
-                                        </span>
-                                    </div>
-                                @else
-                                    <div class="absolute top-2 right-2">
-                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                            <svg class="w-2 h-2 mr-1" fill="currentColor" viewBox="0 0 8 8">
-                                                <circle cx="4" cy="4" r="3"/>
-                                            </svg>
-                                            Esgotado
-                                        </span>
-                                    </div>
-                                @endif
-                            </div>
-                        @else
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-3 flex items-center justify-center">
-                                <div class="text-center">
-                                    <svg class="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                    <p class="text-xs text-gray-500">Produto não encontrado</p>
+                                    <p class="text-xs text-gray-500">
+                                        {{ $wishlistItem->created_at->format('d/m/Y') }}
+                                    </p>
                                 </div>
                             </div>
                         @endif
                     @endforeach
                 </div>
-
-                @if($client->wishlists->count() > 8)
-                    <div class="mt-4 pt-4 border-t border-gray-200 text-center">
-                        <p class="text-xs text-gray-500">
-                            E mais {{ $client->wishlists->count() - 8 }} itens na lista de desejos
-                        </p>
-                    </div>
-                @endif
             @else
                 <div class="text-center py-8">
                     <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -400,123 +347,46 @@
                                 <p class="text-sm font-medium text-orange-800">Carrinho Abandonado</p>
                                 <p class="text-xs text-orange-700">
                                     Última atualização há {{ $abandonedDays }} {{ $abandonedDays === 1 ? 'dia' : 'dias' }}
-                                    ({{ $client->cart->updated_at->format('d/m/Y H:i') }})
                                 </p>
                             </div>
                         </div>
                     </div>
                 @endif
 
-                <div class="space-y-3 max-h-80 overflow-y-auto">
-                    @foreach($client->cart->products->take(6) as $cartProduct)
+                <div class="space-y-2 max-h-80 overflow-y-auto pr-2 border-t pt-4 mt-4">
+                    @foreach($client->cart->products as $cartProduct)
                         @php
                             $vinyl = $cartProduct->productable;
-                            $imageUrl = $vinyl ? vinyl_image_url($vinyl->cover_image) : null;
                             $artists = $vinyl && $vinyl->artists ? $vinyl->artists->pluck('name')->join(', ') : '';
                             $itemTotal = $cartProduct->price * $cartProduct->pivot->quantity;
                         @endphp
-
-                        <div class="flex items-center space-x-3 p-3 border rounded-lg transition-colors duration-200 {{ $isAbandoned ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' : 'border-gray-200 hover:bg-gray-50' }}">
-                            <!-- Imagem do produto -->
-                            <div class="flex-shrink-0">
-                                @if($imageUrl)
-                                    <img src="{{ $imageUrl }}"
-                                         alt="{{ $cartProduct->name }}"
-                                         class="w-16 h-16 object-cover rounded-lg {{ $isAbandoned ? 'ring-2 ring-orange-300' : '' }}"
-                                         loading="lazy"
-                                         onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyMEg0NFY0NEgyMFYyMFoiIHN0cm9rZT0iIzlDQTNBRiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Ik0yOCAzMkwzMiAyOEwzNiAzMkwzMiAzNkwyOCAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+'">
-                                @else
-                                    <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center {{ $isAbandoned ? 'ring-2 ring-orange-300' : '' }}">
-                                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
-                                        </svg>
-                                    </div>
+                        <div class="flex items-start justify-between p-3 rounded-lg transition-colors duration-200 {{ $isAbandoned ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' : 'bg-gray-50 border-gray-200 hover:bg-gray-100' }}">
+                            <div class="flex-grow min-w-0">
+                                <p class="font-semibold text-sm text-gray-800 truncate" title="{{ $cartProduct->name }}">{{ $cartProduct->name }}</p>
+                                @if($artists)
+                                    <p class="text-xs text-gray-600 truncate" title="{{ $artists }}">{{ $artists }}</p>
                                 @endif
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Qtd: {{ $cartProduct->pivot->quantity }} x R$ {{ number_format($cartProduct->price, 2, ',', '.') }}
+                                </p>
                             </div>
-
-                            <!-- Informações do produto -->
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-start justify-between">
-                                    <div class="flex-1 min-w-0">
-                                        <h4 class="text-sm font-medium text-gray-900 line-clamp-2">
-                                            {{ $cartProduct->name }}
-                                        </h4>
-                                        @if($artists)
-                                            <p class="text-xs text-gray-600 mt-1 line-clamp-1">
-                                                {{ $artists }}
-                                            </p>
-                                        @endif
-
-                                        <!-- Informações de quantidade e preço -->
-                                        <div class="flex items-center justify-between mt-2">
-                                            <div class="flex items-center space-x-3">
-                                                <span class="text-xs text-gray-500">
-                                                    Qtd: <span class="font-medium">{{ $cartProduct->pivot->quantity }}</span>
-                                                </span>
-                                                <span class="text-xs text-gray-500">
-                                                    Unit: <span class="font-medium">R$ {{ number_format($cartProduct->price, 2, ',', '.') }}</span>
-                                                </span>
-                                            </div>
-                                            <div class="text-right">
-                                                <p class="text-sm font-bold {{ $isAbandoned ? 'text-orange-700' : 'text-gray-900' }}">
-                                                    R$ {{ number_format($itemTotal, 2, ',', '.') }}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <!-- Data de adição ao carrinho -->
-                                        @if($cartProduct->pivot->created_at)
-                                            <p class="text-xs text-gray-500 mt-1">
-                                                Adicionado em {{ \Carbon\Carbon::parse($cartProduct->pivot->created_at)->format('d/m/Y H:i') }}
-                                            </p>
-                                        @endif
-                                    </div>
-                                </div>
+                            <div class="text-right flex-shrink-0 ml-4">
+                                <p class="text-sm font-bold {{ $isAbandoned ? 'text-orange-700' : 'text-gray-900' }}">
+                                    R$ {{ number_format($itemTotal, 2, ',', '.') }}
+                                </p>
                             </div>
-
-                            <!-- Badge de item abandonado -->
-                            @if($isAbandoned)
-                                <div class="flex-shrink-0">
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                        </svg>
-                                        {{ $abandonedDays }}d
-                                    </span>
-                                </div>
-                            @endif
                         </div>
                     @endforeach
                 </div>
 
-                @if($client->cart->products->count() > 6)
-                    <div class="mt-4 pt-4 border-t border-gray-200 text-center">
-                        <p class="text-xs text-gray-500">
-                            E mais {{ $client->cart->products->count() - 6 }} itens no carrinho
-                        </p>
-                    </div>
-                @endif
-
                 <!-- Total do carrinho -->
-                <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="mt-4 pt-4 border-t {{ $isAbandoned ? 'border-orange-200' : 'border-gray-200' }}">
                     <div class="flex justify-between items-center">
                         <span class="text-sm font-medium text-gray-600">Total do Carrinho:</span>
                         <span class="text-lg font-bold {{ $isAbandoned ? 'text-orange-700' : 'text-gray-900' }}">
                             R$ {{ number_format($clientStats['cart_total'], 2, ',', '.') }}
                         </span>
                     </div>
-
-                    @if($isAbandoned)
-                        <div class="mt-2 p-2 bg-orange-50 rounded-lg">
-                            <p class="text-xs text-orange-700 flex items-center">
-                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                </svg>
-                                <strong>Carrinho abandonado há {{ $abandonedDays }} {{ $abandonedDays === 1 ? 'dia' : 'dias' }}</strong>
-                                - Oportunidade de recuperação de vendas
-                            </p>
-                        </div>
-                    @endif
                 </div>
             @else
                 <div class="text-center py-8">

@@ -61,6 +61,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     // User Creation
     Route::post('/users', [App\Http\Controllers\Admin\UserController::class, 'store'])->name('admin.users.store');
 
+    // Client Users CRUD
+    Route::resource('clients', App\Http\Controllers\Admin\ClientController::class)->names('admin.clients');
+
     // Gerenciamento de Discos
 Route::prefix('discos')->group(function () {
     // Listagem e operações básicas
@@ -181,8 +184,9 @@ Route::prefix('playlists')->group(function () {
 
 // Relatórios adicionais (movidos para fora do grupo playlists)
 Route::prefix('relatorios')->group(function () {
-    Route::get('/carrinhos-abertos', [ReportsController::class, 'openCarts'])->name('admin.reports.open_carts');
-    Route::get('/carrinhos-abertos/{cartId}/items', [ReportsController::class, 'getCartItems'])->name('admin.reports.cart_items');
+    Route::get('/carrinhos-abertos', [ReportsController::class, 'carts'])->name('admin.reports.open_carts');
+    Route::get('/carrinhos-abertos/{productId}/details', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
+    Route::get('/carrinhos-abertos/items/{cartId}', [ReportsController::class, 'getCartItems'])->name('admin.reports.cart_items');
 
     // Relatórios de wishlist
     Route::get('/wishlist', [ReportsController::class, 'wishlists'])->name('admin.reports.wishlists');

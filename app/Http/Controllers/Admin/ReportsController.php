@@ -125,11 +125,11 @@ class ReportsController extends Controller
         // Buscar usuários que têm este produto no carrinho
         $cartUsers = DB::table('cart_items')
             ->join('carts', 'cart_items.cart_id', '=', 'carts.id')
-            ->leftJoin('users', 'carts.user_id', '=', 'users.id')
+            ->join('client_users', 'carts.user_id', '=', 'client_users.id')
             ->select(
-                'users.id as user_id',
-                'users.name',
-                'users.email',
+                'client_users.id as user_id',
+                'client_users.name',
+                'client_users.email',
                 DB::raw('1 as quantity'), // Assumindo que quantidade é sempre 1
                 'carts.created_at',
                 'carts.updated_at'
@@ -172,11 +172,11 @@ class ReportsController extends Controller
 
         // Buscar usuários que têm este produto na wishlist
         $wishlistUsers = DB::table('wishlists')
-            ->join('users', 'wishlists.user_id', '=', 'users.id')
+            ->join('client_users', 'wishlists.user_id', '=', 'client_users.id')
             ->select(
-                'users.id as user_id',
-                'users.name',
-                'users.email',
+                'client_users.id as user_id',
+                'client_users.name',
+                'client_users.email',
                 'wishlists.created_at'
             )
             ->where('wishlists.product_id', $productId)

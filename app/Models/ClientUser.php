@@ -324,8 +324,13 @@ class ClientUser extends Model
                 return 0;
             }
 
-            return $this->cart->products()->sum(function ($product) {
-                return $product->price * $product->pivot->quantity;
+            // Carrega os produtos com os relacionamentos necessários para obter o preço
+            $cartProducts = $this->cart->products()->with(['productable.vinylSec:id,vinyl_master_id,price'])->get();
+
+            // Calcula o total iterando sobre a coleção
+            return $cartProducts->sum(function ($product) {
+                $price = $product->productable->vinylSec->price ?? 0;
+                return $product->pivot->quantity * $price;
             });
         });
     }

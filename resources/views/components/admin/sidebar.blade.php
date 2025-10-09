@@ -53,6 +53,11 @@
                  <span class="flex-1 ms-3 whitespace-nowrap">Relatórios</span>
               </a>
            </li>
+           <li>
+              <a href="{{ route('admin.clients.index') }}" class="flex items-center p-2 text-gray-900 rounded-lg  hover:bg-gray-100  group {{ request()->routeIs('admin.clients.*') ? 'bg-zinc-200' : '' }}">
+                 <span class="flex-1 ms-3 whitespace-nowrap">Clientes</span>
+              </a>
+           </li>
 
 
            <li>

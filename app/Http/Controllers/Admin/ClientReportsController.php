@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 
 class ClientReportsController extends Controller
@@ -172,12 +173,10 @@ class ClientReportsController extends Controller
                 'wishlists' => function ($query) {
                     $query->select('id', 'user_id', 'product_id', 'created_at')
                           ->with(['product' => function ($productQuery) {
-                              $productQuery->select('id', 'title', 'price', 'productable_type', 'productable_id')
+                              $productQuery->select('id', 'name', 'productable_type', 'productable_id')
                                           ->with(['productable' => function ($productableQuery) {
-                                              $productableQuery->select('id', 'title', 'artist_id')
-                                                              ->with(['artists' => function ($artistQuery) {
-                                                                  $artistQuery->select('id', 'name');
-                                                              }]);
+                                              $productableQuery->select('id', 'title')
+                                                              ->with(['artists', 'vinylSec:id,vinyl_master_id,price']);
                                           }]);
                           }])
                           ->limit(10);
@@ -185,13 +184,11 @@ class ClientReportsController extends Controller
                 'cart' => function ($query) {
                     $query->select('id', 'user_id', 'created_at', 'updated_at')
                           ->with(['products' => function ($productQuery) {
-                              $productQuery->select('products.id', 'title', 'price', 'productable_type', 'productable_id')
+                              $productQuery->select('products.id', 'name', 'productable_type', 'productable_id')
                                           ->withPivot('quantity', 'created_at')
                                           ->with(['productable' => function ($productableQuery) {
-                                              $productableQuery->select('id', 'title', 'artist_id')
-                                                              ->with(['artists' => function ($artistQuery) {
-                                                                  $artistQuery->select('id', 'name');
-                                                              }]);
+                                              $productableQuery->select('id', 'title')
+                                                              ->with(['artists', 'vinylSec:id,vinyl_master_id,price']);
                                           }])
                                           ->limit(10);
                           }]);

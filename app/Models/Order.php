@@ -61,6 +61,16 @@ class Order extends Model
         return $this->belongsTo(ShippingQuote::class);
     }
 
+    public function shippingLabel(): BelongsTo
+    {
+        return $this->belongsTo(ShippingLabel::class, 'shipping_label_id');
+    }
+
+    public function coupons(): HasMany
+    {
+        return $this->hasMany(OrderCoupon::class);
+    }
+
     // Métodos auxiliares para status
     public function getStatusLabel(): string
     {

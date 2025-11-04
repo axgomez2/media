@@ -187,7 +187,7 @@ Route::prefix('playlists')->group(function () {
 // Relatórios adicionais (movidos para fora do grupo playlists)
 Route::prefix('relatorios')->group(function () {
     Route::get('/carrinhos-abertos', [ReportsController::class, 'carts'])->name('admin.reports.open_carts');
-    Route::get('/carrinhos-abertos/{productId}/details', [ReportsController::class, 'cartDetails'])->name('admin.reports.cart_details');
+    Route::get('/carrinhos-abertos/{productId}/details', [ReportsController::class, 'cartDetails'])->name('admin.reports.open_cart_details');
     Route::get('/carrinhos-abertos/items/{cartId}', [ReportsController::class, 'getCartItems'])->name('admin.reports.cart_items');
 
     // Relatórios de wishlist

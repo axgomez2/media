@@ -118,10 +118,16 @@ class OrdersController extends Controller
                 }
                 break;
             case 'shipped':
-                $order->shipping_status = 'shipped';
+                // Registrar data de envio
+                if (!$order->shipped_at) {
+                    $order->shipped_at = now();
+                }
                 break;
             case 'delivered':
-                $order->shipping_status = 'delivered';
+                // Registrar data de entrega
+                if (!$order->delivered_at) {
+                    $order->delivered_at = now();
+                }
                 break;
         }
         
@@ -178,76 +184,13 @@ class OrdersController extends Controller
     public function generateShippingLabel(Order $order)
     {
         // Status elegíveis para geração de etiqueta
-        // Somente pedidos pagos, em preparação ou já enviados (para regeneração)
-        $statusPermitidos = [
-            OrderStatus::PAYMENT_APPROVED->value, 
-            OrderStatus::PREPARING->value,
-            OrderStatus::SHIPPED->value   // Permitir regeneração mesmo para pedidos já enviados
-        ];
+        $statusPermitidos = ['payment_approved', 'preparing', 'shipped'];
         
-        // Log completo do pedido para depuração
-        \Illuminate\Support\Facades\Log::info('Dados do pedido: ' . json_encode([
-            'id' => $order->id,
-            'payment_status' => $order->payment_status ?? 'null',
-            'shipping_status' => $order->shipping_status ?? 'null',
-        ]));
-        
-        // Garantir que temos uma string para comparação
-        $orderStatus = $order->status;
-        $orderStatusString = '';
-        
-        // Converter o status para string de forma segura
-        if (is_object($orderStatus)) {
-            if ($orderStatus instanceof \App\Enums\OrderStatus) {
-                $orderStatusString = $orderStatus->value;
-                \Illuminate\Support\Facades\Log::info('Status do pedido (enum): ' . $orderStatusString);
-            } else {
-                // Tentar obter o valor do objeto de forma segura
-                try {
-                    if (method_exists($orderStatus, 'value')) {
-                        $orderStatusString = $orderStatus->value;
-                    } elseif (method_exists($orderStatus, '__toString')) {
-                        $orderStatusString = (string) $orderStatus;
-                    } else {
-                        $orderStatusString = 'unknown';
-                    }
-                } catch (\Exception $e) {
-                    $orderStatusString = 'error_converting';
-                    \Illuminate\Support\Facades\Log::error('Erro ao converter status: ' . $e->getMessage());
-                }
-            }
-        } else {
-            // Já é um tipo primitivo
-            $orderStatusString = (string) $orderStatus;
-        }
-        
-        // Log para depuração
-        \Illuminate\Support\Facades\Log::info('Status do pedido convertido: ' . $orderStatusString);
-        \Illuminate\Support\Facades\Log::info('Status permitidos: ' . print_r($statusPermitidos, true));
-        
-        // Verificar se o status é elegível usando uma abordagem mais flexível
-        $statusMatched = false;
-        
-        // Verificar se o status contém 'payment_approved' ou 'approved' de forma case-insensitive
-        if (stripos($orderStatusString, 'payment_approved') !== false || 
-            stripos($orderStatusString, 'approved') !== false ||
-            stripos($orderStatusString, 'preparing') !== false ||
-            stripos($orderStatusString, 'shipped') !== false) {
-            $statusMatched = true;
-        }
-        
-        // Verificar o payment_status também, se disponível
-        if (!$statusMatched && isset($order->payment_status) && 
-            (stripos($order->payment_status, 'approved') !== false)) {
-            $statusMatched = true;
-        }
-        
-        if (!$statusMatched) {
+        // Verificar se o pedido está em status elegível
+        if (!in_array($order->status, $statusPermitidos)) {
             $statusLabels = implode(', ', array_map(function($status) {
                 return self::getStatusLabel($status);
             }, $statusPermitidos));
-            
-            \Illuminate\Support\Facades\Log::warning('Status não elegível: ' . $orderStatus . ' não está em ' . implode(', ', $statusPermitidos));
             
             return redirect()->back()->with('error', "Este pedido não está em um status elegível para gerar etiqueta de envio. Status permitidos: {$statusLabels}.");
         }
@@ -279,9 +222,9 @@ class OrdersController extends Controller
                 $order->save();
                 
                 // Atualizar o status do pedido para enviado
-                $order->status = OrderStatus::SHIPPED->value;
-                $order->shipping_status = 'label_generated';
-                $order->tracking_number = $response['tracking_code']; 
+                $order->status = 'shipped';
+                $order->tracking_code = $response['tracking_code'];
+                $order->shipped_at = now();
                 $order->save();
                 
                 // Mensagem apropriada para geração ou regeneração
@@ -572,28 +515,21 @@ class OrdersController extends Controller
     private function validateStatusConsistency(Order $order)
     {
         // Garantir que payment_status e status geral sejam consistentes
-        if (in_array($order->status, [OrderStatus::PAYMENT_APPROVED->value, OrderStatus::PREPARING->value, 
-                                     OrderStatus::SHIPPED->value, OrderStatus::DELIVERED->value])) {
+        if (in_array($order->status, ['payment_approved', 'preparing', 'shipped', 'delivered'])) {
             // Todos esses status exigem que o pagamento esteja aprovado
             if ($order->payment_status !== 'approved') {
                 $order->payment_status = 'approved';
             }
         }
         
-        // Garantir que shipping_status e status geral sejam consistentes
-        if ($order->status === OrderStatus::SHIPPED->value && $order->shipping_status !== 'shipped') {
-            $order->shipping_status = 'shipped';
-        } else if ($order->status === OrderStatus::DELIVERED->value && $order->shipping_status !== 'delivered') {
-            $order->shipping_status = 'delivered';
+        // Se o pedido for enviado, registrar data de envio
+        if ($order->status === 'shipped' && !$order->shipped_at) {
+            $order->shipped_at = now();
         }
         
-        // Se o pedido for cancelado
-        if ($order->status === OrderStatus::CANCELED->value) {
-            // Se tiver sido enviado, o shipping_status continua como estava
-            // Caso contrário, cancelamos também o shipping_status
-            if (!in_array($order->shipping_status, ['shipped', 'delivered'])) {
-                $order->shipping_status = 'cancelled';
-            }
+        // Se o pedido for entregue, registrar data de entrega
+        if ($order->status === 'delivered' && !$order->delivered_at) {
+            $order->delivered_at = now();
         }
         
         return $order;
@@ -607,18 +543,14 @@ class OrdersController extends Controller
      */
     public static function getStatusLabel($status)
     {
-        // Extrair o valor do enum se for um objeto OrderStatus
-        if (is_object($status) && $status instanceof OrderStatus) {
-            $status = $status->value;
-        }
-        
         $labels = [
             'pending' => 'Aguardando Pagamento',
             'payment_approved' => 'Pagamento Aprovado',
             'preparing' => 'Em Preparação',
             'shipped' => 'Enviado',
             'delivered' => 'Entregue',
-            'canceled' => 'Cancelado'
+            'canceled' => 'Cancelado',
+            'refunded' => 'Reembolsado'
         ];
         
         return $labels[$status] ?? ucfirst($status);

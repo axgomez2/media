@@ -26,7 +26,7 @@ class OrdersController extends Controller
         $search = $request->input('search');
         
         // Consulta base
-        $query = Order::query()->with(['user', 'items.product']);
+        $query = Order::query()->with(['user', 'items']);
         
         // Aplicar filtros se fornecidos
         if ($status) {
@@ -77,7 +77,18 @@ class OrdersController extends Controller
      */
     public function show(Order $order)
     {
-        $order->load(['items.product', 'user', 'coupons', 'shippingLabel']);
+        // Carregar relacionamentos opcionais de forma segura
+        $order->load([
+            'user', 
+            'items',
+            'coupons',
+        ]);
+        
+        // Tentar carregar shippingLabel se existir
+        if ($order->shipping_label_id) {
+            $order->load('shippingLabel');
+        }
+        
         return view('admin.orders.show', compact('order'));
     }
     

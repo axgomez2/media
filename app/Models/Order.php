@@ -72,9 +72,11 @@ class Order extends Model
     }
 
     // Métodos auxiliares para status
-    public function getStatusLabel(): string
+    public function getStatusLabel(?string $status = null): string
     {
-        return match($this->status) {
+        $statusToCheck = $status ?? $this->status;
+        
+        return match($statusToCheck) {
             'pending' => 'Aguardando Pagamento',
             'payment_approved' => 'Pagamento Aprovado',
             'preparing' => 'Preparando',

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Enums\OrderStatus;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
@@ -104,39 +103,26 @@ class OrdersController extends Controller
         // Status anterior para comparação
         $oldStatus = $order->status;
         
-        // Definindo o status principal como objeto enum
+        // Definindo o status principal como string
+        $order->status = $validated['status'];
+        
+        // Atualizar status relacionados conforme o status principal
         switch ($validated['status']) {
-            case 'pending':
-                $order->status = OrderStatus::PENDING;
-                break;
             case 'payment_approved':
-                $order->status = OrderStatus::PAYMENT_APPROVED;
-                // Atualizar o payment_status quando o pagamento for aprovado
                 $order->payment_status = 'approved';
                 break;
             case 'preparing':
-                $order->status = OrderStatus::PREPARING;
                 // Verificar se o pagamento está aprovado, caso contrário é inconsistente
                 if ($order->payment_status !== 'approved') {
                     $order->payment_status = 'approved'; // Sincronizar
                 }
                 break;
             case 'shipped':
-                $order->status = OrderStatus::SHIPPED;
-                // Atualizar shipping_status para refletir que o pedido foi enviado
                 $order->shipping_status = 'shipped';
                 break;
             case 'delivered':
-                $order->status = OrderStatus::DELIVERED;
-                // Atualizar shipping_status para refletir a entrega
                 $order->shipping_status = 'delivered';
                 break;
-            case 'canceled':
-                $order->status = OrderStatus::CANCELED;
-                break;
-            default:
-                // Se receber um status não reconhecido, volta para página com erro
-                return redirect()->back()->with('error', 'Status inválido');
         }
         
         // Validar a consistência entre os status
@@ -146,7 +132,7 @@ class OrdersController extends Controller
         
         // Mensagem mais detalhada quando houver mudança de status
         if ($oldStatus !== $order->status) {
-            $message = "Status do pedido atualizado de '" . self::getStatusLabel($oldStatus) . "' para '" . self::getStatusLabel($order->status) . "'";
+            $message = "Status do pedido atualizado de '" . $order->getStatusLabel($oldStatus) . "' para '" . $order->getStatusLabel() . "'";
             return redirect()->back()->with('success', $message);
         }
         

@@ -672,4 +672,67 @@ class ClientReportsController extends Controller
             return back()->with('error', 'Erro ao enviar email: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Identifica clientes com alto potencial de conversão
+     */
+    public function highValueProspects()
+    {
+        try {
+            // Clientes com carrinho de alto valor (>R$ 200) abandonado há mais de 3 dias
+            $highValueCarts = ClientUser::with(['cart.products.productable.vinylSec'])
+                ->whereHas('cart', function ($query) {
+                    $query->whereHas('products')
+                          ->where('updated_at', '<=', now()->subDays(3))
+                          ->where('updated_at', '>=', now()->subDays(30)); // Não muito antigo
+                })
+                ->get()
+                ->filter(function ($client) {
+                    return $client->cart_total >= 200;
+                })
+                ->sortByDesc('cart_total');
+
+            // Clientes com muitos itens na wishlist (>5) mas sem pedidos
+            $wishlistProspects = ClientUser::withCount(['wishlists', 'orders'])
+                ->having('wishlists_count', '>=', 5)
+                ->having('orders_count', '=', 0)
+                ->orderByDesc('wishlists_count')
+                ->get();
+
+            // Clientes que visitaram recentemente mas não compraram
+            $recentVisitors = ClientUser::where('updated_at', '>=', now()->subDays(7))
+                ->whereDoesntHave('orders', function ($query) {
+                    $query->where('created_at', '>=', now()->subDays(30));
+                })
+                ->whereHas('cart', function ($query) {
+                    $query->whereHas('products');
+                })
+                ->with(['cart.products'])
+                ->orderByDesc('updated_at')
+                ->limit(20)
+                ->get();
+
+            $stats = [
+                'high_value_carts_count' => $highValueCarts->count(),
+                'high_value_total' => $highValueCarts->sum('cart_total'),
+                'wishlist_prospects_count' => $wishlistProspects->count(),
+                'recent_visitors_count' => $recentVisitors->count(),
+            ];
+
+            return view('admin.reports.clients.prospects', compact(
+                'highValueCarts', 
+                'wishlistProspects', 
+                'recentVisitors', 
+                'stats'
+            ));
+
+        } catch (\Exception $e) {
+            ClientReportsLogger::logError('high_value_prospects', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Erro ao carregar relatório de prospects: ' . $e->getMessage());
+        }
+    }
 }

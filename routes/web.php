@@ -157,6 +157,7 @@ Route::prefix('relatorios')->group(function () {
     // Relatórios de clientes (com middleware adicional de validação)
     Route::middleware('validate.client.reports')->group(function () {
         Route::get('/clientes', [\App\Http\Controllers\Admin\ClientReportsController::class, 'index'])->name('admin.reports.clients.index');
+        Route::get('/clientes/prospects', [\App\Http\Controllers\Admin\ClientReportsController::class, 'highValueProspects'])->name('admin.reports.clients.prospects');
         Route::get('/clientes/export', [\App\Http\Controllers\Admin\ClientReportsController::class, 'export'])->name('admin.reports.clients.export');
         Route::get('/clientes/{id}', [\App\Http\Controllers\Admin\ClientReportsController::class, 'show'])->name('admin.reports.clients.show');
         Route::put('/clientes/{id}/status', [\App\Http\Controllers\Admin\ClientReportsController::class, 'updateStatus'])->name('admin.reports.clients.update_status');

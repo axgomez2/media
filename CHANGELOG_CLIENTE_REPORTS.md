@@ -92,6 +92,37 @@ public function orders(): HasMany
 3. **Manutenibilidade**: Código bem documentado e estruturado
 4. **Escalabilidade**: Preparado para futuras expansões
 
+### 📊 Relatório de Prospects de Alto Valor
+
+#### Nova Funcionalidade: Identificação de Prospects
+- **Controller**: Método `highValueProspects()` em `ClientReportsController`
+- **Rota**: `GET /admin/relatorios/clientes/prospects`
+- **View**: `resources/views/admin/reports/clients/prospects.blade.php`
+
+##### Categorias de Prospects:
+1. **Carrinhos de Alto Valor**: Clientes com carrinho >R$ 200 abandonado há 3-30 dias
+2. **Wishlist Prospects**: Clientes com >5 itens na wishlist mas sem pedidos
+3. **Visitantes Recentes**: Clientes ativos nos últimos 7 dias sem compras recentes
+
+##### Funcionalidades:
+- ✅ Dashboard com estatísticas resumidas
+- ✅ Tabelas detalhadas por categoria
+- ✅ Links diretos para detalhes do cliente
+- ✅ Botões de ação para envio de emails
+- ✅ Tratamento de casos sem prospects
+
+### 🔧 Otimizações de Performance
+
+#### ReportsController Melhorado:
+- **Problema**: Consultas N+1 em loops de carrinhos
+- **Solução**: Implementado eager loading e consultas otimizadas
+- **Impacto**: Redução significativa no tempo de carregamento
+
+##### Métodos Otimizados:
+- `openCarts()` - Eager loading de relacionamentos
+- `getCartItems()` - Consulta única em vez de múltiplas
+- `carts()` - Correção de join com `client_users`
+
 ### 🚀 Próximos Passos Sugeridos
 
 1. Implementar sistema de templates de email personalizáveis
@@ -99,9 +130,12 @@ public function orders(): HasMany
 3. Criar dashboard de métricas de conversão de emails
 4. Implementar A/B testing para templates de email
 5. Adicionar integração com ferramentas de email marketing
+6. **NOVO**: Sistema de pontuação de prospects baseado em comportamento
+7. **NOVO**: Automação de campanhas para diferentes tipos de prospects
 
 ---
 
 **Data de Implementação**: Janeiro 2025  
 **Desenvolvedor**: Sistema Cascade  
-**Status**: ✅ Concluído e Testado
+**Status**: ✅ Concluído e Testado  
+**Última Atualização**: Janeiro 2025 - Prospects e Otimizações

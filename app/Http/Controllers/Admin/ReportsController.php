@@ -99,7 +99,7 @@ class ReportsController extends Controller
         $cartItems = DB::table('cart_items')
             ->join('carts', 'cart_items.cart_id', '=', 'carts.id')
             ->join('products', 'cart_items.product_id', '=', 'products.id')
-            ->leftJoin('users', 'carts.user_id', '=', 'users.id')
+            ->leftJoin('client_users', 'carts.user_id', '=', 'client_users.id')
             ->select(
                 'products.id as product_id',
                 'products.name as title',
@@ -286,27 +286,18 @@ class ReportsController extends Controller
      */
     public function openCarts()
     {
-        // Buscar todos os carrinhos ativos com seus respectivos usuários
-        $carts = Cart::with(['user'])
-            ->where('status', 'active')
+        // Buscar todos os carrinhos ativos com seus respectivos usuários e itens
+        $carts = Cart::with(['user', 'items.product'])
+            ->whereHas('items') // Apenas carrinhos que têm itens
             ->orderBy('updated_at', 'desc')
             ->get();
 
-        // Para cada carrinho, buscar a quantidade de itens e valor total
+        // Calcular estatísticas para cada carrinho
         foreach ($carts as $cart) {
-            $cart->items_count = CartItem::where('cart_id', $cart->id)->count();
-            $cart->total_value = 0; // Inicializa o valor total
-
-            // Itens do carrinho com produtos associados para calcular valor total
-            $cartItems = CartItem::where('cart_id', $cart->id)
-                ->with('product')
-                ->get();
-
-            foreach ($cartItems as $item) {
-                if ($item->product) {
-                    $cart->total_value += $item->product->price;
-                }
-            }
+            $cart->items_count = $cart->items->count();
+            $cart->total_value = $cart->items->sum(function ($item) {
+                return $item->product ? $item->product->price * $item->quantity : 0;
+            });
         }
 
         return view('admin.reports.carts', compact('carts'));
@@ -317,18 +308,13 @@ class ReportsController extends Controller
      */
     public function getCartItems($cartId)
     {
-        $cart = Cart::with('user')->findOrFail($cartId);
+        $cart = Cart::with(['user', 'items.product'])->findOrFail($cartId);
 
-        $items = CartItem::with('product')
-            ->where('cart_id', $cartId)
-            ->get();
-
-        $totalValue = 0;
-        foreach ($items as $item) {
-            if ($item->product) {
-                $totalValue += $item->product->price;
-            }
-        }
+        $items = $cart->items;
+        
+        $totalValue = $items->sum(function ($item) {
+            return $item->product ? $item->product->price * $item->quantity : 0;
+        });
 
         return response()->json([
             'success' => true,

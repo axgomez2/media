@@ -229,7 +229,7 @@
                                             </td>
                                             <td class="px-6 py-4">
                                                 <!-- Select inline para atualizar status -->
-                                                <form action="{{ route('admin.orders.updateStatus', $order) }}" method="POST" class="inline-block">
+                                                <form action="{{ route('admin.orders.update-status', $order) }}" method="POST" class="inline-block">
                                                     @csrf
                                                     @method('PATCH')
                                                     <select name="status" onchange="this.form.submit()" class="text-xs font-semibold rounded-full px-2 py-1 border-0 focus:ring-2 focus:ring-blue-500 {{ $order->getStatusBadgeClass() }}">

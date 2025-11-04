@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
+use App\Models\VinylSec;
+use App\Mail\PaymentApproved;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 use PDF;
 
 class OrdersController extends Controller
@@ -110,6 +114,19 @@ class OrdersController extends Controller
         switch ($validated['status']) {
             case 'payment_approved':
                 $order->payment_status = 'approved';
+                
+                // 🔥 BAIXAR ESTOQUE AUTOMATICAMENTE quando pagamento aprovado
+                if ($oldStatus !== 'payment_approved') {
+                    $this->decreaseStock($order);
+                    
+                    // 📧 ENVIAR EMAIL DE CONFIRMAÇÃO
+                    try {
+                        Mail::to($order->user->email)->send(new PaymentApproved($order));
+                        Log::info("Email de pagamento aprovado enviado para: {$order->user->email}");
+                    } catch (\Exception $e) {
+                        Log::error("Erro ao enviar email de pagamento aprovado: " . $e->getMessage());
+                    }
+                }
                 break;
             case 'preparing':
                 // Verificar se o pagamento está aprovado, caso contrário é inconsistente
@@ -138,7 +155,11 @@ class OrdersController extends Controller
         
         // Mensagem mais detalhada quando houver mudança de status
         if ($oldStatus !== $order->status) {
-            $message = "Status do pedido atualizado de '" . $order->getStatusLabel($oldStatus) . "' para '" . $order->getStatusLabel() . "'";
+            $extraInfo = '';
+            if ($validated['status'] === 'payment_approved' && $oldStatus !== 'payment_approved') {
+                $extraInfo = ' | Estoque atualizado | Email enviado';
+            }
+            $message = "Status do pedido atualizado de '" . $order->getStatusLabel($oldStatus) . "' para '" . $order->getStatusLabel() . "'" . $extraInfo;
             return redirect()->back()->with('success', $message);
         }
         
@@ -533,6 +554,44 @@ class OrdersController extends Controller
         }
         
         return $order;
+    }
+    
+    /**
+     * Decrease stock for all items in the order
+     * 
+     * @param Order $order
+     * @return void
+     */
+    private function decreaseStock(Order $order)
+    {
+        DB::transaction(function () use ($order) {
+            // Carregar items com vinyl
+            $order->load('items.vinyl');
+            
+            foreach ($order->items as $item) {
+                if ($item->vinyl_id && $item->vinyl) {
+                    $vinyl = $item->vinyl;
+                    $quantidadePedido = $item->quantity;
+                    
+                    // Verificar se há estoque suficiente
+                    if ($vinyl->stock >= $quantidadePedido) {
+                        // Baixar estoque
+                        $vinyl->stock -= $quantidadePedido;
+                        
+                        // Atualizar flag in_stock se necessário
+                        if ($vinyl->stock <= 0) {
+                            $vinyl->in_stock = false;
+                        }
+                        
+                        $vinyl->save();
+                        
+                        Log::info("Estoque atualizado - Vinyl ID: {$vinyl->id}, Quantidade reduzida: {$quantidadePedido}, Estoque atual: {$vinyl->stock}");
+                    } else {
+                        Log::warning("Estoque insuficiente - Vinyl ID: {$vinyl->id}, Solicitado: {$quantidadePedido}, Disponível: {$vinyl->stock}");
+                    }
+                }
+            }
+        });
     }
     
     /**

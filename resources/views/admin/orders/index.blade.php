@@ -227,13 +227,45 @@
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 R$ {{ number_format($order->total, 2, ',', '.') }}
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{ $order->getStatusBadgeClass() }}">
-                                                    {{ $order->getStatusLabel() }}
-                                                </span>
+                                            <td class="px-6 py-4">
+                                                <!-- Select inline para atualizar status -->
+                                                <form action="{{ route('admin.orders.updateStatus', $order) }}" method="POST" class="inline-block">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <select name="status" onchange="this.form.submit()" class="text-xs font-semibold rounded-full px-2 py-1 border-0 focus:ring-2 focus:ring-blue-500 {{ $order->getStatusBadgeClass() }}">
+                                                        <option value="pending" {{ $order->status == 'pending' ? 'selected' : '' }}>⏳ Aguardando Pgto</option>
+                                                        <option value="payment_approved" {{ $order->status == 'payment_approved' ? 'selected' : '' }}>✅ Pgto Aprovado</option>
+                                                        <option value="preparing" {{ $order->status == 'preparing' ? 'selected' : '' }}>📦 Preparando</option>
+                                                        <option value="shipped" {{ $order->status == 'shipped' ? 'selected' : '' }}>🚚 Enviado</option>
+                                                        <option value="delivered" {{ $order->status == 'delivered' ? 'selected' : '' }}>✅ Entregue</option>
+                                                        <option value="canceled" {{ $order->status == 'canceled' ? 'selected' : '' }}>❌ Cancelado</option>
+                                                    </select>
+                                                </form>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                {{ $order->payment_method ?? 'N/A' }}
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                                @if($order->payment_method == 'pix')
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                        🔷 PIX
+                                                    </span>
+                                                @elseif($order->payment_method == 'credit_card')
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                        💳 Cartão
+                                                    </span>
+                                                @elseif($order->payment_method == 'boleto')
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                        📄 Boleto
+                                                    </span>
+                                                @else
+                                                    <span class="text-gray-500">{{ $order->payment_method ?? 'N/A' }}</span>
+                                                @endif
+                                                <br>
+                                                @if($order->payment_status == 'approved')
+                                                    <span class="text-xs text-green-600">✅ Aprovado</span>
+                                                @elseif($order->payment_status == 'pending')
+                                                    <span class="text-xs text-yellow-600">⏳ Pendente</span>
+                                                @elseif($order->payment_status == 'cancelled')
+                                                    <span class="text-xs text-red-600">❌ Cancelado</span>
+                                                @endif
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <a href="{{ route('admin.orders.show', $order) }}" class="text-blue-600 hover:text-blue-900">

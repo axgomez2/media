@@ -313,24 +313,50 @@
                                     color: #000;
                                 }
                                 .company-header {
-                                    text-align: center;
+                                    display: grid;
+                                    grid-template-columns: 1fr 2fr 1fr;
+                                    gap: 15px;
+                                    align-items: center;
                                     border-bottom: 2px solid #000;
                                     padding-bottom: 15px;
                                     margin-bottom: 20px;
                                 }
-                                .company-header .logo {
-                                    max-width: 120px;
-                                    max-height: 80px;
-                                    margin: 0 auto 10px auto;
-                                    display: block;
+                                .company-header .logo-section {
+                                    text-align: left;
                                 }
-                                .company-header h1 {
-                                    margin: 0;
-                                    font-size: 24px;
+                                .company-header .logo {
+                                    max-width: 80px;
+                                    max-height: 60px;
+                                }
+                                .company-header .company-info {
+                                    text-align: center;
+                                }
+                                .company-header .company-info h1 {
+                                    margin: 0 0 8px 0;
+                                    font-size: 16px;
                                     font-weight: bold;
                                 }
-                                .company-header p {
-                                    margin: 5px 0;
+                                .company-header .company-info p {
+                                    margin: 3px 0;
+                                    font-size: 10px;
+                                    line-height: 1.3;
+                                }
+                                .company-header .invoice-info {
+                                    text-align: right;
+                                }
+                                .company-header .invoice-info h2 {
+                                    margin: 0 0 5px 0;
+                                    font-size: 14px;
+                                    font-weight: bold;
+                                }
+                                .company-header .invoice-info .invoice-number {
+                                    font-size: 13px;
+                                    font-weight: bold;
+                                    margin: 3px 0;
+                                }
+                                .company-header .invoice-info .invoice-date {
+                                    font-size: 10px;
+                                    margin: 3px 0;
                                 }
                                 .invoice-header {
                                     margin-bottom: 20px;
@@ -413,19 +439,28 @@
                             </style>
                         </head>
                         <body>
-                            <!-- Cabeçalho da empresa -->
+                            <!-- Cabeçalho da empresa em 3 colunas -->
                             <div class="company-header">
-                                <img src="{{ asset('images/logo.png') }}" alt="Logo da Empresa" class="logo">
-                                <h1>{{ config('app.name', 'RDV DISCOS') }}</h1>
-                                <p>CNPJ: 00.000.000/0001-00 | Telefone: (11) 99999-9999</p>
-                                <p>Endereço da Loja, Cidade - Estado, CEP 00000-000</p>
-                            </div>
-
-                            <!-- Cabeçalho do Invoice -->
-                            <div class="invoice-header">
-                                <h2 style="margin: 0; font-size: 18px;">Nota de Venda</h2>
-                                <div class="invoice-number">{{ $sale->invoice_number }}</div>
-                                <p style="margin: 5px 0;">Data: {{ $sale->created_at->format('d/m/Y H:i') }}</p>
+                                <!-- Coluna 1: Logo (Esquerda) -->
+                                <div class="logo-section">
+                                    <img src="{{ asset('images/logo.png') }}" alt="Logo RDV Discos" class="logo">
+                                </div>
+                                
+                                <!-- Coluna 2: Dados da Empresa (Centro) -->
+                                <div class="company-info">
+                                    <h1>RDV DISCOS DE VINIL</h1>
+                                    <p><strong>CNPJ:</strong> 61.850.546/0001-26</p>
+                                    <p><strong>Telefone:</strong> (11) 94715-9293</p>
+                                    <p>Rua Montevidéu, 174 - Santo André - SP</p>
+                                    <p>CEP: 09220-360</p>
+                                </div>
+                                
+                                <!-- Coluna 3: Informações do Invoice (Direita) -->
+                                <div class="invoice-info">
+                                    <h2>NOTA DE VENDA</h2>
+                                    <div class="invoice-number">#{{ $sale->invoice_number }}</div>
+                                    <div class="invoice-date">{{ $sale->created_at->format('d/m/Y H:i') }}</div>
+                                </div>
                             </div>
 
                             <!-- Dados do Cliente -->

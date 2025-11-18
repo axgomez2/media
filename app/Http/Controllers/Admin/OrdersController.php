@@ -568,34 +568,54 @@ class OrdersController extends Controller
      */
     private function decreaseStock(Order $order)
     {
+        Log::info("🔽 [DECREASE STOCK] Iniciando baixa de estoque para pedido #{$order->id}");
+        
         DB::transaction(function () use ($order) {
             // Carregar items com vinyl
             $order->load('items.vinyl');
             
+            Log::info("🔽 [DECREASE STOCK] Total de itens no pedido: " . $order->items->count());
+            
             foreach ($order->items as $item) {
+                Log::info("🔽 [DECREASE STOCK] Processando item #{$item->id}", [
+                    'product_id' => $item->product_id,
+                    'vinyl_id' => $item->vinyl_id,
+                    'quantity' => $item->quantity,
+                    'has_vinyl_relation' => $item->vinyl ? 'SIM' : 'NÃO'
+                ]);
+                
                 if ($item->vinyl_id && $item->vinyl) {
                     $vinyl = $item->vinyl;
                     $quantidadePedido = $item->quantity;
+                    $estoqueAntes = $vinyl->stock;
+                    
+                    Log::info("📦 [DECREASE STOCK] VinylSec ID {$vinyl->id} - Estoque antes: {$estoqueAntes}, Reduzir: {$quantidadePedido}");
                     
                     // Verificar se há estoque suficiente
                     if ($vinyl->stock >= $quantidadePedido) {
                         // Baixar estoque
                         $vinyl->stock -= $quantidadePedido;
+                        $estoqueDepois = $vinyl->stock;
                         
                         // Atualizar flag in_stock se necessário
                         if ($vinyl->stock <= 0) {
                             $vinyl->in_stock = false;
+                            Log::info("⚠️ [DECREASE STOCK] VinylSec ID {$vinyl->id} - Estoque zerado, marcando como fora de estoque");
                         }
                         
                         $vinyl->save();
                         
-                        Log::info("Estoque atualizado - Vinyl ID: {$vinyl->id}, Quantidade reduzida: {$quantidadePedido}, Estoque atual: {$vinyl->stock}");
+                        Log::info("✅ [DECREASE STOCK] Estoque atualizado - Vinyl ID: {$vinyl->id}, Antes: {$estoqueAntes}, Depois: {$estoqueDepois}");
                     } else {
-                        Log::warning("Estoque insuficiente - Vinyl ID: {$vinyl->id}, Solicitado: {$quantidadePedido}, Disponível: {$vinyl->stock}");
+                        Log::warning("❌ [DECREASE STOCK] Estoque insuficiente - Vinyl ID: {$vinyl->id}, Solicitado: {$quantidadePedido}, Disponível: {$vinyl->stock}");
                     }
+                } else {
+                    Log::warning("⚠️ [DECREASE STOCK] Item #{$item->id} não tem vinyl_id ou relação vinyl carregada");
                 }
             }
         });
+        
+        Log::info("✅ [DECREASE STOCK] Baixa de estoque concluída para pedido #{$order->id}");
     }
     
     /**

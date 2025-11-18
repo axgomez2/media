@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\{VinylMaster, Artist, Genre, Style, Product, ProductType, RecordLabel, Track, Weight, Dimension, VinylSec, Media, CatStyleShop, Cart, Wantlist, Wishlist};
+use App\Models\{VinylMaster, Artist, Genre, Style, Product, ProductType, RecordLabel, Track, Weight, Dimension, VinylSec, Media, CatStyleShop, Cart, Wantlist, Wishlist, Supplier, MidiaStatus, CoverStatus};
 use App\Services\{VinylService, DiscogsService, ImageService};
 use App\Traits\FlashMessages;
 use Illuminate\Http\Request;
@@ -291,8 +291,11 @@ class VinylController extends Controller
         $weights = Weight::all();
         $dimensions = Dimension::all();
         $categories = CatStyleShop::all();
+        $suppliers = Supplier::all();
+        $midiaStatuses = MidiaStatus::all();
+        $coverStatuses = CoverStatus::all();
 
-        return view('admin.vinyls.edit', compact('vinyl', 'weights', 'dimensions', 'categories'));
+        return view('admin.vinyls.edit', compact('vinyl', 'weights', 'dimensions', 'categories', 'suppliers', 'midiaStatuses', 'coverStatuses'));
     }
 
     public function update(Request $request, $id)
@@ -300,15 +303,44 @@ class VinylController extends Controller
         $vinyl = VinylMaster::findOrFail($id);
 
         $validatedData = $request->validate([
+            // VinylMaster
             'description'         => 'nullable|string',
+            
+            // VinylSec - Códigos
+            'catalog_number'      => 'nullable|string',
+            'barcode'             => 'nullable|string',
+            'internal_code'       => 'nullable|string',
+            
+            // VinylSec - Atributos Físicos
+            'format'              => 'nullable|string',
+            'num_discs'           => 'nullable|integer|min:1',
+            'speed'               => 'nullable|string',
+            'edition'             => 'nullable|string',
             'weight_id'           => 'required|exists:weights,id',
             'dimension_id'        => 'required|exists:dimensions,id',
-            'stock'               => 'required|integer|min:0',
+            
+            // VinylSec - Condição
+            'midia_status_id'     => 'nullable|exists:midia_statuses,id',
+            'cover_status_id'     => 'nullable|exists:cover_statuses,id',
+            'notes'               => 'nullable|string',
+            
+            // VinylSec - Preços e Estoque
             'price'               => 'required|numeric|min:0',
-
+            'buy_price'           => 'nullable|numeric|min:0',
             'promotional_price'   => 'nullable|numeric|min:0',
+            'stock'               => 'required|integer|min:0',
+            
+            // VinylSec - Status
+            'is_new'              => 'boolean',
             'is_promotional'      => 'boolean',
+            'is_presale'          => 'boolean',
             'in_stock'            => 'boolean',
+            'presale_arrival_date' => 'nullable|date',
+            
+            // VinylSec - Fornecedor
+            'supplier_id'         => 'nullable|exists:suppliers,id',
+            
+            // Categorias
             'category_ids'        => 'required|array',
             'category_ids.*'      => 'exists:cat_style_shop,id',
         ]);
@@ -316,29 +348,64 @@ class VinylController extends Controller
         DB::beginTransaction();
 
         try {
+            // Atualizar VinylMaster (descrição)
             $vinyl->update(['description' => $validatedData['description']]);
 
+            // Atualizar VinylSec com TODOS os campos
             $vinyl->vinylSec()->updateOrCreate(
                 ['vinyl_master_id' => $vinyl->id],
                 [
+                    // Códigos
+                    'catalog_number'      => $validatedData['catalog_number'],
+                    'barcode'             => $validatedData['barcode'],
+                    'internal_code'       => $validatedData['internal_code'],
+                    
+                    // Atributos Físicos
+                    'format'              => $validatedData['format'],
+                    'num_discs'           => $validatedData['num_discs'] ?? 1,
+                    'speed'               => $validatedData['speed'],
+                    'edition'             => $validatedData['edition'],
                     'weight_id'           => $validatedData['weight_id'],
                     'dimension_id'        => $validatedData['dimension_id'],
-                    'stock'               => $validatedData['stock'],
+                    
+                    // Condição
+                    'midia_status_id'     => $validatedData['midia_status_id'],
+                    'cover_status_id'     => $validatedData['cover_status_id'],
+                    'notes'               => $validatedData['notes'],
+                    
+                    // Preços e Estoque
                     'price'               => $validatedData['price'],
-
+                    'buy_price'           => $validatedData['buy_price'],
                     'promotional_price'   => $validatedData['promotional_price'],
-                    'is_promotional'      => $validatedData['is_promotional'] ?? false,
-                    'in_stock'            => $validatedData['in_stock'] ?? false,
+                    'stock'               => $validatedData['stock'],
+                    
+                    // Status
+                    'is_new'              => $request->has('is_new') ? 1 : 0,
+                    'is_promotional'      => $request->has('is_promotional') ? 1 : 0,
+                    'is_presale'          => $request->has('is_presale') ? 1 : 0,
+                    'in_stock'            => $request->has('in_stock') ? 1 : 0,
+                    'presale_arrival_date' => $validatedData['presale_arrival_date'],
+                    
+                    // Fornecedor
+                    'supplier_id'         => $validatedData['supplier_id'],
                 ]
             );
 
+            // Atualizar categorias
             $vinyl->categories()->sync($validatedData['category_ids']);
 
             DB::commit();
+            
+            Log::info('✅ [VINYL UPDATE] Disco atualizado com sucesso', [
+                'vinyl_id' => $vinyl->id,
+                'vinyl_sec_id' => $vinyl->vinylSec->id,
+                'updated_fields' => array_keys($validatedData)
+            ]);
+            
             return redirect()->route('admin.vinyls.index')->with('success', 'Disco atualizado com sucesso.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error updating vinyl: ' . $e->getMessage());
+            Log::error('❌ [VINYL UPDATE] Erro ao atualizar disco: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
             return back()->withInput()->with('error', 'Ocorreu um erro ao atualizar o disco. Por favor, tente novamente.');
         }

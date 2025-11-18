@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\VinylSec;
+use App\Models\Cart;
 use App\Mail\PaymentApproved;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -118,6 +119,9 @@ class OrdersController extends Controller
                 // 🔥 BAIXAR ESTOQUE AUTOMATICAMENTE quando pagamento aprovado
                 if ($oldStatus !== 'payment_approved') {
                     $this->decreaseStock($order);
+                    
+                    // 🛒 LIMPAR CARRINHO DO CLIENTE
+                    $this->clearUserCart($order);
                     
                     // 📧 ENVIAR EMAIL DE CONFIRMAÇÃO
                     try {
@@ -592,6 +596,31 @@ class OrdersController extends Controller
                 }
             }
         });
+    }
+    
+    /**
+     * Clear user cart after payment approval
+     * 
+     * @param Order $order
+     * @return void
+     */
+    private function clearUserCart(Order $order)
+    {
+        try {
+            // Buscar carrinho do usuário
+            $cart = Cart::where('user_id', $order->user_id)->first();
+            
+            if ($cart) {
+                // Deletar todos os itens do carrinho
+                $cart->items()->delete();
+                
+                Log::info("Carrinho limpo - User ID: {$order->user_id}, Order ID: {$order->id}");
+            } else {
+                Log::info("Nenhum carrinho encontrado para o usuário - User ID: {$order->user_id}");
+            }
+        } catch (\Exception $e) {
+            Log::error("Erro ao limpar carrinho - User ID: {$order->user_id}, Erro: " . $e->getMessage());
+        }
     }
     
     /**

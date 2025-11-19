@@ -291,9 +291,28 @@ class VinylController extends Controller
         $weights = Weight::all();
         $dimensions = Dimension::all();
         $categories = CatStyleShop::all();
-        $suppliers = Supplier::all();
-        $midiaStatuses = MidiaStatus::all();
-        $coverStatuses = CoverStatus::all();
+        
+        // Carregar dados opcionais apenas se as tabelas existirem
+        try {
+            $suppliers = Supplier::all();
+        } catch (\Exception $e) {
+            $suppliers = collect();
+            Log::warning('⚠️ Tabela suppliers não encontrada');
+        }
+        
+        try {
+            $midiaStatuses = MidiaStatus::all();
+        } catch (\Exception $e) {
+            $midiaStatuses = collect();
+            Log::warning('⚠️ Tabela midia_statuses não encontrada');
+        }
+        
+        try {
+            $coverStatuses = CoverStatus::all();
+        } catch (\Exception $e) {
+            $coverStatuses = collect();
+            Log::warning('⚠️ Tabela cover_statuses não encontrada');
+        }
 
         return view('admin.vinyls.edit', compact('vinyl', 'weights', 'dimensions', 'categories', 'suppliers', 'midiaStatuses', 'coverStatuses'));
     }
@@ -320,8 +339,8 @@ class VinylController extends Controller
             'dimension_id'        => 'required|exists:dimensions,id',
             
             // VinylSec - Condição
-            'midia_status_id'     => 'nullable|exists:midia_statuses,id',
-            'cover_status_id'     => 'nullable|exists:cover_statuses,id',
+            'midia_status_id'     => 'nullable|integer',
+            'cover_status_id'     => 'nullable|integer',
             'notes'               => 'nullable|string',
             
             // VinylSec - Preços e Estoque
@@ -338,7 +357,7 @@ class VinylController extends Controller
             'presale_arrival_date' => 'nullable|date',
             
             // VinylSec - Fornecedor
-            'supplier_id'         => 'nullable|exists:suppliers,id',
+            'supplier_id'         => 'nullable|integer',
             
             // Categorias
             'category_ids'        => 'required|array',

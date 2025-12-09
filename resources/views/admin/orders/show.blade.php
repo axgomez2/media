@@ -355,33 +355,35 @@
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        @if($item->vinylMaster && $item->vinylMaster->cover_image)
-                                            <div class="flex-shrink-0 h-12 w-12">
-                                                <img src="{{ asset('storage/' . $item->vinylMaster->cover_image) }}" alt="{{ $item->name }}" class="h-12 w-12 rounded object-cover">
-                                            </div>
-                                        @else
-                                            <div class="flex-shrink-0 h-12 w-12 bg-gray-300 rounded"></div>
-                                        @endif
+                                        <div class="flex-shrink-0 h-12 w-12 bg-gray-300 rounded"></div>
                                         <div class="ml-4">
-                                            <div class="text-sm font-medium text-gray-900">{{ $item->name }}</div>
-                                            @if($item->vinylMaster)
-                                                <div class="text-sm text-gray-500">{{ $item->vinylMaster->title }}</div>
+                                            <div class="text-sm font-medium text-gray-900">
+                                                {{ $item->product_name ?? $item->album_title ?? 'Produto' }}
+                                            </div>
+                                            @if($item->artist_name || $item->album_title)
+                                                <div class="text-sm text-gray-500">
+                                                    @if($item->artist_name)
+                                                        {{ $item->artist_name }}
+                                                        @if($item->album_title)
+                                                            -
+                                                        @endif
+                                                    @endif
+                                                    {{ $item->album_title }}
+                                                </div>
                                             @endif
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    @if($item->vinylMaster && $item->vinylMaster->artists)
-                                        @foreach($item->vinylMaster->artists as $artist)
-                                            {{ $artist->name }}{{ !$loop->last ? ', ' : '' }}
-                                        @endforeach
+                                    @if($item->artist_name)
+                                        {{ $item->artist_name }}
                                     @else
                                         -
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ {{ number_format($item->unit_price ?? 0, 2, ',', '.') }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $item->quantity }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ {{ number_format(($item->unit_price ?? 0) * $item->quantity, 2, ',', '.') }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">R$ {{ number_format($item->total_price ?? (($item->unit_price ?? 0) * $item->quantity), 2, ',', '.') }}</td>
                             </tr>
                         @endforeach
                     </tbody>
